@@ -1,58 +1,72 @@
 # simplomon
-Very simple monitoring system with a single configuration file
+Very simple monitoring system with a single configuration file and a single binary
 
-Key differences:
- * Also setup what should not work
+Key differences compared to existing systems:
+
+ * Setup in 5 minutes, no need to ever think about it anymore
+ * Also check what should not work (ports that should be closed)
  * Pin certain things how the _should_ be (like NS records)
+ * Advanced features by default
+   * Like certificate expiry checking
 
+## Sample configuration 
+Note that this configuration is completely functional, you need nothing
+else:
 
-## different destinations for alerts
-so you can monitor for friends easily
+```lua
+pushoverNotifier{user="copy this in from pushuover config",
+        apikey="copy this in from pushover config"}
 
-## Monitors
-Each Monitor does its thing and publishes some helpful stats. One of these
-stats is called alert. 
+dailyChime{utcHour=10}
 
-Some samples:
+https{url="https://berthub.eu"}
+https{url="https://berthub.eu/nlelec/dutch-stack.svg", maxAgeMinutes=15}
+https{url="https://galmon.eu/"}
 
-`checkTCPUnreachable("192.0.2.0/24", [22, 25, 3306], except: [["192.0.2.1", 25]])`
+nameservers={"100.25.31.6", "86.82.68.237", "217.100.190.174"}
+dnssoa{domain="berthub.eu", servers= nameservers}
+dnssoa{domain="hubertnet.nl", servers= nameservers}}
 
-Will check this entire range that the named ports are not reachable. 
-Each individual IP/port combination is a possible alert state. 
+scaryports={25, 80, 110, 443, 3000, 3306, 5000, 5432, 8000, 8080, 8888}
 
-`ensureNSRecords("berthub.eu", {"server.berthub.eu", "ns-us1.berthub.eu"})`
+tcpportclosed{servers={"100.25.31.6"}, ports=scaryports}
+```
 
-`checkURLReachable("https://berthub.eu", ips: {"1.2.3.4", "5.4.3.2", "DNS"})`
-This will also check if the certificate is fresh
+## Compiling
+On Debian derived systems the following works:
 
-`checkDNSSOASync("berthub.eu")` - checks if all the SOA records are the same
+```
+apt install python3-pip pkg-config
+```
+In addition, the project requires a recent version of meson, which you can
+get with 'pip3 install meson ninja' or perhaps 'pip install
+meson ninja' and only if that doesn't work 'apt install meson'.
 
-`checkDNSResponds("www.berthub.eu", ips: {"1.2.3.4", "5.4.3.2"})`
-`checkNoSMTPRelay("smtp.server.example.com")`
+> The meson in Debian bullseye is very old, and will give you a confusing
+> error message about 'git' if you try it. If you [enable
+> bullseye-backports](https://backports.debian.org/Instructions/) you can do
+> `apt install -t bullseye-backports meson` and get a working one. Or use
+> the pip version, which is also great.
 
+Then run:
 
+```
+meson setup build
+meson compile -C build
+```
 
+# Distributing binaries, docker etc
+To make a more portable binary, try:
 
+```bash
+LDFLAGS="-static-libstdc++ -static-libgcc" meson setup build --prefer-static
+meson compile -C build/
+```
 
- * Port open
-   * Open: 0 or 1
-   * Alert: 1 or 0
- * https request
-   * Succeeded: 0 or 1
-   * Reponse time: 200ms
-   * Certificate remaining days: 34
+Or even a fully static one:
+```bash
+LDFLAGS=-static meson setup build --prefer-static -Dbuildtype=release -Dcpp-httplib:cpp-httplib_openssl=disabled -Dcpp-httplib:cpp-httplib_brotli=disabled
 
-
-
-It also knows when it is in an alert condition based on those stats.  There
-could also be multiple alert conditions, and these are also published.
-
-The monitor performs periodic checks, and these set or reset the alert
-conditions.
-
-These conditions get polled, and can lead to alerts.
-
-# Filter
-Many tests might be a bit flaky and we only want to alert if the alert stays
-up for a while.
+meson compile -C build/
+```
 

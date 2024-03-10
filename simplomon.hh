@@ -140,6 +140,16 @@ private:
   int d_maxAgeMinutes=0;
 };
 
+class HTTPRedirChecker : public Checker
+{
+public:
+  HTTPRedirChecker(sol::table data);
+  CheckResult perform() override;
+
+private:
+  std::string d_fromhostpart, d_frompath, d_tourl;
+};
+
 
 
 extern std::vector<std::unique_ptr<Checker>> g_checkers;

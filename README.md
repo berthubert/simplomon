@@ -7,7 +7,7 @@ Key differences compared to existing systems:
  * Also check what should not work (ports that should be closed)
  * Pin certain things how they _should_ be (like NS records)
  * Advanced features by default
-   * Like certificate expiry checking
+   * certificate expiry checking
    * DNS synchronization
 
 You'd use this if you think "I need to slap some monitoring on this pronto
@@ -58,6 +58,13 @@ dns{server="100.25.31.6", name="berthub.eu", type="A",
 	acceptable={"86.82.68.237", "217.100.190.174"}}
 dns{server="100.25.31.6", name="berthub.eu", type="AAAA", 
 	acceptable={"2001:41f0:782d::2"}}
+
+-- Does the http redirect work?
+httpredir{fromUrl="http://berthub.eu", toUrl="https://berthub.eu/"}
+
+-- And the www redirects?
+httpredir{fromUrl="http://www.berthub.eu", toUrl="https://berthub.eu/"}
+httpredir{fromUrl="https://www.berthub.eu", toUrl="https://berthub.eu/"}     
 ```
 
 Save this as 'simplomon.conf' and start './simplomon' and you should be in

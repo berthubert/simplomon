@@ -38,7 +38,6 @@ dailyChime{utcHour=10} -- 10AM UTC chime confirms monitoring works
 -- the following checks certificates, and whines if any expire within
 -- two weeks
 https{url="https://berthub.eu"}
-
 https{url="https://galmon.eu/"}
 
 -- This complains if that URL is older than 15 minutes
@@ -53,9 +52,11 @@ dnssoa{domain="hubertnet.nl", servers= nameservers}}
 scaryports={25, 80, 110, 443, 3000, 3306, 5000, 5432, 8000, 8080, 8888}
 tcpportclosed{servers={"100.25.31.6"}, ports=scaryports}
 
--- Check if DNS is serving what is should be
-dns{server="100.25.31.6", name="berthub.eu", type="A", acceptable={"86.82.68.237", "217.100.190.174"}}
-dns{server="100.25.31.6", name="berthub.eu", type="AAAA", acceptable={"2001:41f0:782d::2"}}
+-- Check if DNS if serving what is should be
+dns{server="100.25.31.6", name="berthub.eu", type="A", 
+	acceptable={"86.82.68.237", "217.100.190.174"}}
+dns{server="100.25.31.6", name="berthub.eu", type="AAAA", 
+	acceptable={"2001:41f0:782d::2"}}
 ```
 
 Save this as 'simplomon.conf' and start './simplomon' and you should be in

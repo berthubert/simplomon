@@ -30,7 +30,7 @@ else, except a working Pushover account. Code will shortly also support
 [ntfy](https://ntfy.sh/), and any other reasonable suggestions I hear about.
 
 ```lua
-pushoverNotifier{user="copy this in from pushuover config",
+pushoverNotifier{user="copy this in from pushover config",
         apikey="copy this in from pushover config"}
 
 dailyChime{utcHour=10} -- 10AM UTC chime confirms monitoring works

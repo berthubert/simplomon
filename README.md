@@ -14,7 +14,7 @@ Key differences compared to existing systems:
 
 You'd use this if you think "I need to slap some monitoring on this pronto
 and I can't be bothered to setup something difficult that will require
-maintenance".
+maintenance or get hacked".
 
 You'd also use this if you just want to do stuff like this out of the box:
 
@@ -61,7 +61,7 @@ rrsig{server="100.25.31.6", name="berthub.eu"}
 scaryports={25, 80, 110, 443, 3000, 3306, 5000, 5432, 8000, 8080, 8888}
 tcpportclosed{servers={"100.25.31.6"}, ports=scaryports}
 
--- Check if DNS if serving what is should be
+-- Check if DNS is serving what it should be
 dns{server="100.25.31.6", name="berthub.eu", type="A", 
 	acceptable={"86.82.68.237", "217.100.190.174"}}
 dns{server="100.25.31.6", name="berthub.eu", type="AAAA", 

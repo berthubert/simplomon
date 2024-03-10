@@ -28,7 +28,7 @@ https{url="https://galmon.eu/"}
 -- This complains if that URL is older than 15 minutes
 https{url="https://berthub.eu/nlelec/dutch-stack.svg", maxAgeMinutes=15}
 
--- Check is SOA records are identical
+-- Check if SOA records are identical
 nameservers={"100.25.31.6", "86.82.68.237", "217.100.190.174"}
 dnssoa{domain="berthub.eu", servers= nameservers}
 dnssoa{domain="hubertnet.nl", servers= nameservers}}
@@ -36,7 +36,14 @@ dnssoa{domain="hubertnet.nl", servers= nameservers}}
 -- Check if the following ports are closed
 scaryports={25, 80, 110, 443, 3000, 3306, 5000, 5432, 8000, 8080, 8888}
 tcpportclosed{servers={"100.25.31.6"}, ports=scaryports}
+
+-- Check if DNS is serving what is should be
+dns{server="100.25.31.6", name="berthub.eu", type="A", acceptable={"86.82.68.237", "217.100.190.174"}}
+dns{server="100.25.31.6", name="berthub.eu", type="AAAA", acceptable={"2001:41f0:782d::2"}}
 ```
+
+Save this as 'simplomon.conf' and start './simplomon' and you should be in
+business.
 
 ## Compiling
 On Debian derived systems the following works:

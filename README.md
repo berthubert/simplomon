@@ -17,18 +17,24 @@ else:
 pushoverNotifier{user="copy this in from pushuover config",
         apikey="copy this in from pushover config"}
 
-dailyChime{utcHour=10}
+dailyChime{utcHour=10} -- 10AM UTC chime confirms monitoring works
 
+-- the following checks certificates, and whines if any expire within
+-- two weeks
 https{url="https://berthub.eu"}
-https{url="https://berthub.eu/nlelec/dutch-stack.svg", maxAgeMinutes=15}
+
 https{url="https://galmon.eu/"}
 
+-- This complains if that URL is older than 15 minutes
+https{url="https://berthub.eu/nlelec/dutch-stack.svg", maxAgeMinutes=15}
+
+-- Check is SOA records are identical
 nameservers={"100.25.31.6", "86.82.68.237", "217.100.190.174"}
 dnssoa{domain="berthub.eu", servers= nameservers}
 dnssoa{domain="hubertnet.nl", servers= nameservers}}
 
+-- Check if the following ports are closed
 scaryports={25, 80, 110, 443, 3000, 3306, 5000, 5432, 8000, 8080, 8888}
-
 tcpportclosed{servers={"100.25.31.6"}, ports=scaryports}
 ```
 

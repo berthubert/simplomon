@@ -9,6 +9,8 @@ Key differences compared to existing systems:
  * Advanced features by default
    * certificate expiry checking
    * DNS synchronization
+   * DNSSEC signature freshness checks
+   * HTTP redirect checking ('www', 'http')
 
 You'd use this if you think "I need to slap some monitoring on this pronto
 and I can't be bothered to setup something difficult that will require

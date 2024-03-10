@@ -119,6 +119,11 @@ void initLua()
     g_checkers.emplace_back(make_unique<HTTPRedirChecker>(data));
   });
 
+  g_lua.set_function("rrsig", [&](sol::table data) {
+    g_checkers.emplace_back(make_unique<RRSIGChecker>(data));
+  });
+
+  
   g_lua.set_function("pushoverNotifier", [&](sol::table data) {
     g_reporter = make_unique<PushoverReporter>(data.get<string>("user"),
                                                data.get<string>("apikey"));

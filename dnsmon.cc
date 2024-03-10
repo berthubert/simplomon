@@ -4,6 +4,7 @@
 #include <signal.h>
 #include "fmt/format.h"
 #include "fmt/ranges.h"
+#include "fmt/chrono.h"
 #include "simplomon.hh"
 
 using namespace std;
@@ -27,8 +28,7 @@ DNSChecker::DNSChecker(sol::table data)
   d_qname = makeDNSName(data.get<string>("name"));
   d_qtype = makeDNSType(data.get<string>("type").c_str());
   for(const auto& a : data.get<vector<string>>("acceptable"))
-    d_acceptable.insert(a);
-  
+    d_acceptable.insert(a);  
 }
 
 CheckResult DNSChecker::perform()
@@ -185,3 +185,81 @@ CheckResult DNSSOAChecker::perform()
   }  
 }
 
+
+RRSIGChecker::RRSIGChecker(sol::table data)
+{
+  checkLuaTable(data, {"server", "name"}, {"minDays"});
+  d_nsip = ComboAddress(data.get<string>("server"), 53);
+  d_qname = makeDNSName(data.get<string>("name"));
+  d_minDays = data.get_or("minDays", 7);
+}
+
+CheckResult RRSIGChecker::perform()
+{
+  DNSMessageWriter dmw(d_qname, DNSType::SOA);
+          
+  dmw.dh.rd = false;
+  dmw.randomizeID();
+  dmw.setEDNS(4000, true);
+  
+  Socket sock(d_nsip.sin4.sin_family, SOCK_DGRAM);
+  SConnect(sock, d_nsip);
+
+  SWrite(sock, dmw.serialize());
+
+  ComboAddress server;
+
+  double timeo=1.0;
+  if(!waitForData(sock, &timeo)) { // timeout
+    return fmt::format("Timeout asking DNS question for {}|{} to {}",
+                       d_qname.toString(), toString(DNSType::SOA), d_nsip.toStringWithPort());
+  }
+    
+  
+  string resp = SRecvfrom(sock, 65535, server);
+  
+  DNSMessageReader dmr(resp);
+  DNSSection rrsection;
+  uint32_t ttl;
+
+  DNSName dn;
+  DNSType dt;
+  dmr.getQuestion(dn, dt);
+  
+  if((RCode)dmr.dh.rcode != RCode::Noerror) {
+    return fmt::format("Got DNS response with RCode {} from {} for question {}|{}",
+                       toString((RCode)dmr.dh.rcode), d_qname.toString(), d_nsip.toStringWithPort(), toString(DNSType::SOA));
+  }
+  
+  std::unique_ptr<RRGen> rr;
+  bool valid=false;
+  while(dmr.getRR(rrsection, dn, dt, ttl, rr)) {
+    if(rrsection == DNSSection::Answer && dt == DNSType::RRSIG && dn == d_qname) {
+      auto rrsig = dynamic_cast<RRSIGGen*>(rr.get());
+      struct tm tmstart={}, tmend={};
+      time_t inception = rrsig->d_inception;
+      time_t expire = rrsig->d_expire;
+      gmtime_r(&inception, &tmstart);
+      gmtime_r(&expire, &tmend);
+
+      fmt::print("Got active RRSIG for {} from {:%Y-%m-%d %H:%M} to {:%Y-%m-%d %H:%M} UTC\n", d_qname.toString(), tmstart, tmend);
+
+      time_t now = time(nullptr);
+      if(now + d_minDays * 86400 > expire)
+        return fmt::format("Got RRSIG that expires in {:.0f} days for {} from {}, valid from {:%Y-%m-%d %H:%M} to {:%Y-%m-%d %H:%M} UTC",
+                           (expire - now)/86400.0,
+                           d_qname.toString(), d_nsip.toStringWithPort(), tmstart, tmend);
+      else if(now < inception) {
+        fmt::print("Got RRSIG that is not yet active for {} from {}, valid from {:%Y-%m-%d %H:%M} to {:%Y-%m-%d %H:%M} UTC\n",
+                   d_qname.toString(), d_nsip.toStringWithPort(), tmstart, tmend);
+
+      }
+      else
+        valid=true;
+    }
+  }
+  if(!valid)
+    return fmt::format("Did not find an active RRSIG for {} over at server {}", d_qname.toString(), d_nsip.toStringWithPort());
+  
+  return "";
+}

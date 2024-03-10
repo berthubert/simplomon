@@ -98,6 +98,19 @@ private:
   std::set<std::string> d_acceptable;
 };
 
+class RRSIGChecker : public Checker
+{
+public:
+  RRSIGChecker(sol::table data);
+  CheckResult perform() override;
+
+private:
+  ComboAddress d_nsip;
+  DNSName d_qname;
+  int d_minDays=0;
+};
+
+
 class DNSSOAChecker : public Checker
 {
 public:

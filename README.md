@@ -5,9 +5,10 @@ Key differences compared to existing systems:
 
  * Setup in 5 minutes, no need to ever think about it anymore
  * Also check what should not work (ports that should be closed)
- * Pin certain things how the _should_ be (like NS records)
+ * Pin certain things how they _should_ be (like NS records)
  * Advanced features by default
    * Like certificate expiry checking
+   * DNS synchronization
 
 You'd use this if you think "I need to slap some monitoring on this pronto
 and I can't be bothered to setup something difficult that will require
@@ -46,7 +47,7 @@ https{url="https://berthub.eu/nlelec/dutch-stack.svg", maxAgeMinutes=15}
 -- Check if SOA records are identical
 nameservers={"100.25.31.6", "86.82.68.237", "217.100.190.174"}
 dnssoa{domain="berthub.eu", servers= nameservers}
-dnssoa{domain="hubertnet.nl", servers= nameservers}}
+dnssoa{domain="hubertnet.nl", servers= nameservers}
 
 -- Check if the following ports are closed
 scaryports={25, 80, 110, 443, 3000, 3306, 5000, 5432, 8000, 8080, 8888}

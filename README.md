@@ -9,9 +9,25 @@ Key differences compared to existing systems:
  * Advanced features by default
    * Like certificate expiry checking
 
+You'd use this if you think "I need to slap some monitoring on this pronto
+and I can't be bothered to setup something difficult that will require
+maintenance".
+
+You'd also use this if you just want to do stuff like this out of the box:
+
+ * Check if all DNS servers are updating
+ * If you want to get timely notifications of TLS certificates expiring
+
+If you want a full featured complicated monitoring system, there is lots of
+choice already, and this isn't it.
+
+But if you miss features that should be in every monitoring solution, do let
+me know! Open an issue please.
+
 ## Sample configuration 
 Note that this configuration is completely functional, you need nothing
-else:
+else, except a working Pushover account. Code will shortly also support
+[ntfy](https://ntfy.sh/), and any other reasonable suggestions I hear about.
 
 ```lua
 pushoverNotifier{user="copy this in from pushuover config",

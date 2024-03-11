@@ -247,7 +247,7 @@ CheckResult RRSIGChecker::perform()
       gmtime_r(&inception, &tmstart);
       gmtime_r(&expire, &tmend);
 
-      fmt::print("Got active RRSIG for {}|{} from {:%Y-%m-%d %H:%M} to {:%Y-%m-%d %H:%M} UTC\n", d_qname.toString(), toString(d_qtype), tmstart, tmend);
+      //      fmt::print("Got active RRSIG for {}|{} from {:%Y-%m-%d %H:%M} to {:%Y-%m-%d %H:%M} UTC\n", d_qname.toString(), toString(d_qtype), tmstart, tmend);
 
       time_t now = time(nullptr);
       if(now + d_minDays * 86400 > expire)

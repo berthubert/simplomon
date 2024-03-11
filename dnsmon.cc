@@ -9,26 +9,15 @@
 
 using namespace std;
 
-
-DNSChecker::DNSChecker(const std::string& nsip,
-                       const std::string& qname,
-                       const std::string& qtype,
-                       const std::set<std::string>& acceptable)
-{
-  d_nsip = ComboAddress(nsip, 53);
-  d_qname = makeDNSName(qname);
-  d_qtype= makeDNSType(qtype.c_str());
-  d_acceptable = acceptable;
-}
-
 DNSChecker::DNSChecker(sol::table data)
 {
-  checkLuaTable(data, {"server", "name", "type", "acceptable"});
+  checkLuaTable(data, {"server", "name", "type", "acceptable"}, {"rd"});
   d_nsip = ComboAddress(data.get<string>("server"), 53);
   d_qname = makeDNSName(data.get<string>("name"));
   d_qtype = makeDNSType(data.get<string>("type").c_str());
   for(const auto& a : data.get<vector<string>>("acceptable"))
-    d_acceptable.insert(a);  
+    d_acceptable.insert(a);
+  d_rd = data.get_or("rd", true);
 }
 
 CheckResult DNSChecker::perform()

@@ -84,10 +84,6 @@ private:
 class DNSChecker : public Checker
 {
 public:
-  DNSChecker(const std::string& nsip,
-             const std::string& qname,
-             const std::string& qtype,
-             const std::set<std::string>& acceptable);
   DNSChecker(sol::table data);
   CheckResult perform() override;
 
@@ -96,6 +92,7 @@ private:
   DNSName d_qname;
   DNSType d_qtype;
   std::set<std::string> d_acceptable;
+  bool d_rd = true;
 };
 
 class RRSIGChecker : public Checker

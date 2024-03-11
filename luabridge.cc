@@ -55,7 +55,7 @@ public:
     now -= d_utcHour * 3600;
     struct tm tm;
     gmtime_r(&now, &tm);
-    return fmt::format("Your daily chime for {:%Y-%m-%d}. This is not an alert", tm);
+    return fmt::format("Your daily chime for {:%Y-%m-%d}. This is not an alert.", tm);
   }
 private:
   int d_utcHour;
@@ -67,41 +67,48 @@ void initLua()
   g_lua.open_libraries(sol::lib::base, sol::lib::package);
 
   g_lua.set_function("dailyChime", [&](sol::table data) {
-    g_checkers.emplace_back(make_unique<DailyChimeChecker>(data));
+    g_checkers.emplace_back(make_unique<DailyChimeChecker>(data), g_notifiers);
   });
 
   g_lua.set_function("https", [&](sol::table data) {
-    g_checkers.emplace_back(make_unique<HTTPSChecker>(data));
+    g_checkers.emplace_back(make_unique<HTTPSChecker>(data), g_notifiers);
   });
   g_lua.set_function("dnssoa", [&](sol::table data) {
-    g_checkers.emplace_back(make_unique<DNSSOAChecker>(data));
+    g_checkers.emplace_back(make_unique<DNSSOAChecker>(data), g_notifiers);
   });
   g_lua.set_function("tcpportclosed", [&](sol::table data) {
-    g_checkers.emplace_back(make_unique<TCPPortClosedChecker>(data));
+    g_checkers.emplace_back(make_unique<TCPPortClosedChecker>(data), g_notifiers);
   });
   g_lua.set_function("dns", [&](sol::table data) {
-    g_checkers.emplace_back(make_unique<DNSChecker>(data));
+    g_checkers.emplace_back(make_unique<DNSChecker>(data), g_notifiers);
   });
 
   g_lua.set_function("httpredir", [&](sol::table data) {
-    g_checkers.emplace_back(make_unique<HTTPRedirChecker>(data));
+    g_checkers.emplace_back(make_unique<HTTPRedirChecker>(data), g_notifiers);
   });
 
   g_lua.set_function("rrsig", [&](sol::table data) {
-    g_checkers.emplace_back(make_unique<RRSIGChecker>(data));
+    g_checkers.emplace_back(make_unique<RRSIGChecker>(data), g_notifiers);
   });
 
   
   g_lua.set_function("pushoverNotifier", [&](sol::table data) {
     g_notifiers.emplace_back(
-                             make_unique<PushoverNotifier>(data.get<string>("user"),
+                             make_shared<PushoverNotifier>(data.get<string>("user"),
                                                            data.get<string>("apikey")));
+    return *g_notifiers.rbegin();
   });
+
   g_lua.set_function("ntfyNotifier", [&](sol::table data) {
     checkLuaTable(data, {"topic"});
     g_notifiers.emplace_back(
-                             make_unique<NtfyNotifier>(data.get<string>("topic")));
+                             make_shared<NtfyNotifier>(data.get<string>("topic")));
+    return *g_notifiers.rbegin();
   });
-  
 
+  g_lua.set_function("emailNotifier", [&](sol::table data) {
+    g_notifiers.emplace_back(
+                             make_shared<EmailNotifier>(data));
+    return *g_notifiers.rbegin();
+  });
 }

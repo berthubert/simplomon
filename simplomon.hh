@@ -76,10 +76,7 @@ public:
 private:
   CheckResult d_status;
   std::mutex d_m;
-
-
 };
-
 
 class DNSChecker : public Checker
 {
@@ -164,9 +161,15 @@ private:
 };
 
 
+struct CheckerNotifierCombo
+{
+  std::unique_ptr<Checker> checker;
+  std::vector<std::shared_ptr<Notifier>> notifiers;
+};
 
-extern std::vector<std::unique_ptr<Checker>> g_checkers;
+extern std::vector<CheckerNotifierCombo> g_checkers;
+
 void checkLuaTable(sol::table data,
                    const std::set<std::string>& mandatory,
                    const std::set<std::string>& opt = std::set<std::string>());
-extern std::vector<std::unique_ptr<Notifier>> g_notifiers;
+extern std::vector<std::shared_ptr<Notifier>> g_notifiers;

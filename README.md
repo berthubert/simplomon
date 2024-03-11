@@ -10,7 +10,7 @@ Key differences compared to existing systems:
    * certificate expiry checking
    * DNS synchronization
    * DNSSEC signature freshness checks
-   * HTTP redirect checking ('www', 'http')
+   * HTTP redirect checking ('www' -> '', 'http' -> 'https')
 
 You'd use this if you think "I need to slap some monitoring on this pronto
 and I can't be bothered to setup something difficult that will require
@@ -24,8 +24,8 @@ You'd also use this if you just want to do stuff like this out of the box:
 If you want a full featured complicated monitoring system, there is lots of
 choice already, and this isn't it.
 
-But if you miss features that should be in every monitoring solution, do let
-me know! Open an issue please.
+But if you miss features that just make sense, do let me know!  Open an
+issue please.
 
 ## Sample configuration (without Docker)
 Note that this configuration is completely functional, you need nothing
@@ -39,6 +39,9 @@ pushoverNotifier{user="copy this in from pushover config",
 -- or ntfy.sh:
 -- ntfyNotifier{topic="your_secret_topic"}
 
+-- or email
+--emailNotifier{from="bert@example.com", to="bert@example.com", server="10.0.0.2"}
+
 dailyChime{utcHour=10} -- 10AM UTC chime confirms monitoring works
 
 -- the following checks certificates, and whines if any expire within
@@ -46,8 +49,8 @@ dailyChime{utcHour=10} -- 10AM UTC chime confirms monitoring works
 https{url="https://berthub.eu"}
 https{url="https://galmon.eu/"}
 
--- This complains if that URL is older than 15 minutes
-https{url="https://berthub.eu/nlelec/dutch-stack.svg", maxAgeMinutes=15}
+-- This complains if that URL is older than 20 minutes
+https{url="https://berthub.eu/nlelec/dutch-stack.svg", maxAgeMinutes=20}
 
 -- check if a specific server IP is serving correctly
 https{url="https://berthub.eu", serverIP="86.82.68.237"}

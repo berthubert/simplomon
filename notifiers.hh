@@ -1,5 +1,7 @@
 #pragma once
 #include <string>
+#include "sol/sol.hpp"
+#include "sclasses.hh"
 
 class Notifier
 {
@@ -25,4 +27,15 @@ public:
   void alert(const std::string& message) override;
 private:
   std::string d_topic;
+};
+
+
+class EmailNotifier : public Notifier
+{
+public:
+  EmailNotifier(sol::table data);
+  void alert(const std::string& message) override;
+private:
+  std::string d_from, d_to;
+  ComboAddress d_server;
 };

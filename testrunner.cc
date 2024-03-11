@@ -12,8 +12,8 @@
 #include "simplomon.hh"
 
 using namespace std;
-vector<std::unique_ptr<Checker>> g_checkers;
-std::vector<std::unique_ptr<Notifier>> g_notifiers;
+vector<CheckerNotifierCombo> g_checkers;
+std::vector<std::shared_ptr<Notifier>> g_notifiers;
 
 TEST_CASE("alert filter test") {
   AlertFilter af1;

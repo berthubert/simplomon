@@ -97,7 +97,8 @@ void MiniCurl::setupURL(const std::string& str, const ComboAddress* rem, const C
     }
 
     for (const auto& port : ports) {
-      string hcode = fmt::format("%s:%u:%s", host4 , port , rem->toString());
+      string hcode = fmt::sprintf("%s:%u:%s", host4 , port , rem->toString());
+      //      fmt::print("hcode: {}\n", hcode);
       hostlist = curl_slist_append(hostlist, hcode.c_str());
     }
 

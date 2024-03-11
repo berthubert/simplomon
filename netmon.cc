@@ -84,15 +84,16 @@ CheckResult HTTPSChecker::perform()
   try {
     MiniCurl mc;
     MiniCurl::certinfo_t certinfo;
+    // XXX also do POST
     string body = mc.getURL(d_url, &certinfo,
                             d_serverIP.has_value() ? &*d_serverIP : 0 );
-    
-    
+    if(mc.d_http_code >= 400)
+      return fmt::format("Content {} generated a {} status code{}", d_url, mc.d_http_code, serverIP);
     
     time_t now = time(nullptr);
     if(d_maxAgeMinutes > 0 && mc.d_filetime > 0)
       if(now - mc.d_filetime > d_maxAgeMinutes * 60)
-        return fmt::format("Content {} older than the {} minutes limit", d_url, d_maxAgeMinutes);
+        return fmt::format("Content {} older than the {} minutes limit{}", d_url, d_maxAgeMinutes, serverIP);
     
     if(certinfo.empty())  {
       return fmt::format("No certificates for '{}'{}", d_url,

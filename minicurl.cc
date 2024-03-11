@@ -145,7 +145,6 @@ std::string MiniCurl::getURL(const std::string& str, MiniCurl::certinfo_t* ciptr
       throw std::runtime_error(fmt::format("URL: {}, Error: {}\n", str, curl_easy_strerror(res)));
     }
 
-
     int i;
     for(i = 0; i < ci->num_of_certs; i++) {
       struct curl_slist *slist;
@@ -157,10 +156,8 @@ std::string MiniCurl::getURL(const std::string& str, MiniCurl::certinfo_t* ciptr
       }
     }
   }
-  long http_code = 0;  
-  curl_easy_getinfo(d_curl, CURLINFO_RESPONSE_CODE, &http_code);
-
-  // should we check this against anything?
+  d_http_code = 0;  
+  curl_easy_getinfo(d_curl, CURLINFO_RESPONSE_CODE, &d_http_code);
   
   std::string ret=d_data;
   d_data.clear();

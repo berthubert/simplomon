@@ -69,11 +69,12 @@ HTTPSChecker::HTTPSChecker(const std::string& url)
 
 HTTPSChecker::HTTPSChecker(sol::table data)
 {
-  checkLuaTable(data, {"url"}, {"maxAgeMinutes", "minBytes"});
+  checkLuaTable(data, {"url"}, {"maxAgeMinutes", "minBytes", "minCertDays"});
   d_minBytes = data.get_or("minBytes", 0);
   d_url = data.get<string>("url");
+  d_minCertDays = data.get_or("minCertDays", 14);
   d_maxAgeMinutes =data.get_or("maxAgeMinutes", 0);
-
+  
 }
 
 CheckResult HTTPSChecker::perform()
@@ -96,7 +97,7 @@ try
     return fmt::format("URL {} was available, but did not deliver at least {} bytes of data", d_url, d_minBytes);
   }
   
-  //  fmt::print("{}", certinfo);
+  //  fmt::print("{}\n", certinfo);
   
   time_t minexptime = std::numeric_limits<time_t>::max();
 
@@ -120,8 +121,9 @@ try
     minexptime = min(expire, minexptime);
   }
   double days = (minexptime - now)/86400.0;
-  //  fmt::print("{}: first cert expires in {:.1f} days\n", d_url, days);
-  if(days < 14) {
+  //  fmt::print("{}: first cert expires in {:.1f} days (lim {})\n", d_url, days,
+  //             d_minCertDays);
+  if(days < d_minCertDays) {
     return fmt::format("A certificate for '{}' expires in {:d} days",
                           d_url, (int)round(days));
   }

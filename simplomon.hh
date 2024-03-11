@@ -153,6 +153,7 @@ private:
   std::string d_url;
   int d_maxAgeMinutes = 0;
   unsigned int d_minBytes = 0;
+  unsigned int d_minCertDays = 14;
 };
 
 class HTTPRedirChecker : public Checker

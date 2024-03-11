@@ -19,8 +19,11 @@ void PushoverReporter::alert(const std::string& msg)
   };
 
   auto res = cli.Post("/1/messages.json", items);
-  if(!res)
-    throw std::runtime_error("Could not send post");
+  if(!res) {
+    auto err = res.error();
+    
+    throw std::runtime_error(fmt::format("Could not send post: {}", httplib::to_string(err)));
+  }
   if(res->status != 200)
     throw std::runtime_error(fmt::format("Post to pushover failed, res = {}", res->status));
 

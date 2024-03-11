@@ -29,7 +29,7 @@ me know! Open an issue please.
 
 ## Sample configuration 
 Note that this configuration is completely functional, you need nothing
-else, except a working Pushover account. Code will shortly also support
+else, except a working [Pushover](https://pushover.net/) account. Code will shortly also support
 [ntfy](https://ntfy.sh/), and any other reasonable suggestions I hear about.
 
 ```lua

@@ -119,3 +119,8 @@ LDFLAGS=-static meson setup build --prefer-static -Dbuildtype=release -Dcpp-http
 meson compile -C build/
 ```
 
+# Inspiration
+
+ * [Uptime Kuma](https://github.com/louislam/uptime-kuma) - single Docker
+   image. 
+

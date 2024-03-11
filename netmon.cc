@@ -62,76 +62,84 @@ CheckResult TCPPortClosedChecker::perform()
   return "";
 }
 
-HTTPSChecker::HTTPSChecker(const std::string& url)
-{
-  d_url = url;
-}
-
 HTTPSChecker::HTTPSChecker(sol::table data)
 {
-  checkLuaTable(data, {"url"}, {"maxAgeMinutes", "minBytes", "minCertDays"});
+  checkLuaTable(data, {"url"}, {"maxAgeMinutes", "minBytes", "minCertDays", "serverIP"});
   d_minBytes = data.get_or("minBytes", 0);
   d_url = data.get<string>("url");
   d_minCertDays = data.get_or("minCertDays", 14);
   d_maxAgeMinutes =data.get_or("maxAgeMinutes", 0);
-  
+  string serverip = data.get_or("serverIP", string(""));
+  if(!serverip.empty())
+    d_serverIP = ComboAddress(serverip, 443);
 }
 
 CheckResult HTTPSChecker::perform()
-try
+
 {
-  MiniCurl mc;
-  MiniCurl::certinfo_t certinfo;
-  string body = mc.getURL(d_url, &certinfo);
-
-  time_t now = time(nullptr);
-  if(d_maxAgeMinutes > 0 && mc.d_filetime > 0)
-    if(now - mc.d_filetime > d_maxAgeMinutes * 60)
-      return fmt::format("Content {} older than the {} minutes limit", d_url, d_maxAgeMinutes);
+  string serverIP;
+  if(d_serverIP.has_value())
+    serverIP = fmt::format(" (server IP {})", d_serverIP->toString());
   
-  if(certinfo.empty())  {
-    return fmt::format("No certificates for '{}'", d_url);
-  }
-
-  if(body.size() < d_minBytes) {
-    return fmt::format("URL {} was available, but did not deliver at least {} bytes of data", d_url, d_minBytes);
-  }
-  
-  //  fmt::print("{}\n", certinfo);
-  
-  time_t minexptime = std::numeric_limits<time_t>::max();
-
-  for(auto& cert: certinfo) {
-    /*    fmt::print("Cert {}, subject: {}, alternate: {}, start date: {}, expire date: {}, ", cert.first, cert.second["Subject"],
-               cert.second["X509v3 Subject Alternative Name"],
-               cert.second["Start date"], cert.second["Expire date"]);
-    */
-    struct tm tm={};
-    // Jul 29 00:00:00 2023 GMT
+  try {
+    MiniCurl mc;
+    MiniCurl::certinfo_t certinfo;
+    string body = mc.getURL(d_url, &certinfo,
+                            d_serverIP.has_value() ? &*d_serverIP : 0 );
     
-    strptime(cert.second["Expire date"].c_str(), "%b %d %H:%M:%S %Y", &tm);
-    time_t expire = mktime(&tm);
-    strptime(cert.second["Start date"].c_str(), "%b %d %H:%M:%S %Y", &tm);
-    time_t start = mktime(&tm);
     
-    if(now < start) {
-      return fmt::format("certificate for {} not yet valid", d_url);
+    
+    time_t now = time(nullptr);
+    if(d_maxAgeMinutes > 0 && mc.d_filetime > 0)
+      if(now - mc.d_filetime > d_maxAgeMinutes * 60)
+        return fmt::format("Content {} older than the {} minutes limit", d_url, d_maxAgeMinutes);
+    
+    if(certinfo.empty())  {
+      return fmt::format("No certificates for '{}'{}", d_url,
+                         serverIP);
     }
-    //    fmt::print("days left: {:.1f}\n", (expire - now)/86400.0);
-    minexptime = min(expire, minexptime);
+    
+    if(body.size() < d_minBytes) {
+      return fmt::format("URL {} was available{}, but did not deliver at least {} bytes of data", d_url, serverIP, d_minBytes);
+    }
+    
+    //  fmt::print("{}\n", certinfo);
+    
+    time_t minexptime = std::numeric_limits<time_t>::max();
+    
+    for(auto& cert: certinfo) {
+      /*    fmt::print("Cert {}, subject: {}, alternate: {}, start date: {}, expire date: {}, ", cert.first, cert.second["Subject"],
+            cert.second["X509v3 Subject Alternative Name"],
+            cert.second["Start date"], cert.second["Expire date"]);
+      */
+      struct tm tm={};
+      // Jul 29 00:00:00 2023 GMT
+      
+      strptime(cert.second["Expire date"].c_str(), "%b %d %H:%M:%S %Y", &tm);
+      time_t expire = mktime(&tm);
+      strptime(cert.second["Start date"].c_str(), "%b %d %H:%M:%S %Y", &tm);
+      time_t start = mktime(&tm);
+      
+      if(now < start) {
+        return fmt::format("certificate for {} not yet valid{}",
+                           d_url, serverIP);
+      }
+      //    fmt::print("days left: {:.1f}\n", (expire - now)/86400.0);
+      minexptime = min(expire, minexptime);
+    }
+    double days = (minexptime - now)/86400.0;
+    //  fmt::print("{}: first cert expires in {:.1f} days (lim {})\n", d_url, days,
+    //             d_minCertDays);
+    if(days < d_minCertDays) {
+      return fmt::format("A certificate for '{}' expires in {:d} days{}",
+                         d_url, (int)round(days), serverIP);
+    }
+    return "";
   }
-  double days = (minexptime - now)/86400.0;
-  //  fmt::print("{}: first cert expires in {:.1f} days (lim {})\n", d_url, days,
-  //             d_minCertDays);
-  if(days < d_minCertDays) {
-    return fmt::format("A certificate for '{}' expires in {:d} days",
-                          d_url, (int)round(days));
+  catch(exception& e) {
+    return e.what() + serverIP;
   }
   return "";
-  
-}
-catch(exception& e) {
-  return e.what();
 }
 
 HTTPRedirChecker::HTTPRedirChecker(sol::table data)

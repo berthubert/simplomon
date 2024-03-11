@@ -142,7 +142,6 @@ private:
 class HTTPSChecker : public Checker
 {
 public:
-  HTTPSChecker(const std::string& d_url);
   HTTPSChecker(sol::table data);
   ~HTTPSChecker()
   {
@@ -154,6 +153,7 @@ private:
   int d_maxAgeMinutes = 0;
   unsigned int d_minBytes = 0;
   unsigned int d_minCertDays = 14;
+  std::optional<ComboAddress> d_serverIP;
 };
 
 class HTTPRedirChecker : public Checker

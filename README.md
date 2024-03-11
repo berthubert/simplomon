@@ -82,7 +82,7 @@ business.
 On Debian derived systems the following works:
 
 ```
-apt install python3-pip pkg-config
+apt install python3-pip pkg-config libnghttp2-dev
 ```
 In addition, the project requires a recent version of meson, which you can
 get with 'pip3 install meson ninja' or perhaps 'pip install

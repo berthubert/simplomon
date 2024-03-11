@@ -20,7 +20,28 @@ int main(int argc, char **argv)
 {
   initLua();
   try {
-    g_lua.safe_script_file("simplomon.conf");
+    if(auto ptr = getenv("SIMPLOMON_CONFIG_URL")) {
+      MiniCurl mc;
+      fmt::print("Getting config from '{}'\n", ptr);
+      string script = mc.getURL(ptr);
+      g_lua.safe_script(script);
+    }
+    else if(argc > 1) {
+      string src = argv[2];
+      if(src.find("https://")==0) {
+        MiniCurl mc;
+        fmt::print("Getting config from '{}'\n", src);
+        string script = mc.getURL(src);
+        g_lua.safe_script(script);
+      }
+      else
+        g_lua.safe_script_file(src);
+    }
+    else {
+      fmt::print("Getting config from '{}'\n", "simplomon.conf");
+      g_lua.safe_script_file("simplomon.conf");
+    }
+
   }
   catch(sol::error& e) {
     fmt::print("Error parsing configuration: {}\n", e.what());

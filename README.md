@@ -29,12 +29,15 @@ me know! Open an issue please.
 
 ## Sample configuration 
 Note that this configuration is completely functional, you need nothing
-else, except a working [Pushover](https://pushover.net/) account. Code will shortly also support
-[ntfy](https://ntfy.sh/), and any other reasonable suggestions I hear about.
+else, except a working [Pushover](https://pushover.net/) or [ntfy](https://ntfy.sh/)
+account. If you need something else, do let me know.
 
 ```lua
 pushoverNotifier{user="copy this in from pushover config",
         apikey="copy this in from pushover config"}
+
+-- or ntfy.sh:
+-- ntfyNotifier{topic="your_secret_topic"}
 
 dailyChime{utcHour=10} -- 10AM UTC chime confirms monitoring works
 

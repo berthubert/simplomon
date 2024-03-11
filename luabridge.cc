@@ -125,8 +125,14 @@ void initLua()
 
   
   g_lua.set_function("pushoverNotifier", [&](sol::table data) {
-    g_reporter = make_unique<PushoverReporter>(data.get<string>("user"),
-                                               data.get<string>("apikey"));
+    g_notifiers.emplace_back(
+                             make_unique<PushoverNotifier>(data.get<string>("user"),
+                                                           data.get<string>("apikey")));
+  });
+  g_lua.set_function("ntfyNotifier", [&](sol::table data) {
+    checkLuaTable(data, {"topic"});
+    g_notifiers.emplace_back(
+                             make_unique<NtfyNotifier>(data.get<string>("topic")));
   });
   
 

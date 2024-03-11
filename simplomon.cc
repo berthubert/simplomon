@@ -2,7 +2,7 @@
 #include "fmt/ranges.h"
 #include <map>
 #include <curl/curl.h>
-#include "pushover.hh"
+#include "notifiers.hh"
 #include "nlohmann/json.hpp"
 #include <unistd.h>
 #include <time.h>
@@ -14,7 +14,7 @@
 
 using namespace std;
 vector<std::unique_ptr<Checker>> g_checkers;
-std::unique_ptr<PushoverReporter> g_reporter;
+vector<std::unique_ptr<Notifier>> g_notifiers;
 
 int main(int argc, char **argv)
 {
@@ -48,8 +48,8 @@ int main(int argc, char **argv)
     return EXIT_FAILURE;
   }
 
-  if(!g_reporter) {
-    fmt::print("Did not configure a notifier, can't run\n");
+  if(g_notifiers.empty()) {
+    fmt::print("Did not configure a notifier, can't notify\n");
   }
 
   for(;;) {
@@ -89,7 +89,9 @@ int main(int argc, char **argv)
           msg=fmt::format("🥳 The following alert is resolved: {}\n", c->d_alertedreason);
         c->d_alertedreason = reason;
 
-        g_reporter->alert(msg);
+        for(const auto & n : g_notifiers) {
+          n->alert(msg);
+        }
         fmt::print("Sent out notification: {}\n", msg);
       }
       else if(!reason.empty()) {

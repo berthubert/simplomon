@@ -3,7 +3,7 @@
 #include <string>
 #include "record-types.hh"
 #include "sclasses.hh"
-#include "pushover.hh"
+#include "notifiers.hh"
 #include "sol/sol.hpp"
 
 #include <fmt/chrono.h>
@@ -172,4 +172,4 @@ extern std::vector<std::unique_ptr<Checker>> g_checkers;
 void checkLuaTable(sol::table data,
                    const std::set<std::string>& mandatory,
                    const std::set<std::string>& opt = std::set<std::string>());
-extern std::unique_ptr<PushoverReporter> g_reporter;
+extern std::vector<std::unique_ptr<Notifier>> g_notifiers;

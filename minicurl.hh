@@ -49,10 +49,11 @@ public:
   std::string urlEncode(std::string_view str);
   CURL *d_curl;
   time_t d_filetime=-1;
-private:
 
-  static size_t write_callback(char *ptr, size_t size, size_t nmemb, void *userdata);
+private:
   std::string d_data;
+  static size_t write_callback(char *ptr, size_t size, size_t nmemb, void *userdata);
+
   struct curl_slist* d_header_list = nullptr;
   void setupURL(const std::string& str, const ComboAddress* rem=0, const ComboAddress* src=0);
   void setHeaders(const MiniCurlHeaders& headers);

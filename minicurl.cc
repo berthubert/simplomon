@@ -113,6 +113,7 @@ void MiniCurl::setupURL(const std::string& str, const ComboAddress* rem, const C
   curl_easy_setopt(d_curl, CURLOPT_SSL_VERIFYHOST, true);
   //  curl_easy_setopt(d_curl, CURLOPT_FAILONERROR, true);
   curl_easy_setopt(d_curl, CURLOPT_URL, str.c_str());
+
   curl_easy_setopt(d_curl, CURLOPT_WRITEFUNCTION, write_callback);
   curl_easy_setopt(d_curl, CURLOPT_WRITEDATA, this);
   curl_easy_setopt(d_curl, CURLOPT_TIMEOUT, 10L);

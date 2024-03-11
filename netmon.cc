@@ -69,10 +69,11 @@ HTTPSChecker::HTTPSChecker(const std::string& url)
 
 HTTPSChecker::HTTPSChecker(sol::table data)
 {
-  checkLuaTable(data, {"url"}, {"maxAgeMinutes"});
-  sol::object url=data["url"];
-  d_url = url.as<string>();
+  checkLuaTable(data, {"url"}, {"maxAgeMinutes", "minBytes"});
+  d_minBytes = data.get_or("minBytes", 0);
+  d_url = data.get<string>("url");
   d_maxAgeMinutes =data.get_or("maxAgeMinutes", 0);
+
 }
 
 CheckResult HTTPSChecker::perform()
@@ -80,7 +81,7 @@ try
 {
   MiniCurl mc;
   MiniCurl::certinfo_t certinfo;
-  mc.getURL(d_url, &certinfo);
+  string body = mc.getURL(d_url, &certinfo);
 
   time_t now = time(nullptr);
   if(d_maxAgeMinutes > 0 && mc.d_filetime > 0)
@@ -89,8 +90,12 @@ try
   
   if(certinfo.empty())  {
     return fmt::format("No certificates for '{}'", d_url);
-   }
+  }
 
+  if(body.size() < d_minBytes) {
+    return fmt::format("URL {} was available, but did not deliver at least {} bytes of data", d_url, d_minBytes);
+  }
+  
   //  fmt::print("{}", certinfo);
   
   time_t minexptime = std::numeric_limits<time_t>::max();

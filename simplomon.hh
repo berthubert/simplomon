@@ -107,6 +107,7 @@ public:
 private:
   ComboAddress d_nsip;
   DNSName d_qname;
+  DNSType d_qtype;
   int d_minDays=0;
 };
 
@@ -150,7 +151,8 @@ public:
 
 private:
   std::string d_url;
-  int d_maxAgeMinutes=0;
+  int d_maxAgeMinutes = 0;
+  unsigned int d_minBytes = 0;
 };
 
 class HTTPRedirChecker : public Checker

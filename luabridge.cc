@@ -61,11 +61,11 @@ void checkLuaTable(sol::table data,
     }
     
     if(!mandatory.count(k) && !opt.count(k))
-      throw std::runtime_error(fmt::format("Unknown parameter {} passed", k));
+      throw std::runtime_error(fmt::format("Unknown parameter '{}' passed", k));
   });
     
   if(!mand.empty())
-    throw std::runtime_error(fmt::format("Missing mandatory fields {}", mand));
+    throw std::runtime_error(fmt::format("Missing mandatory fields '{}'", mand));
   
 }
 

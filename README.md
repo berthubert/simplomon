@@ -1,5 +1,5 @@
 # simplomon
-Very simple monitoring system with a single configuration file and a single binary
+Very simple monitoring system with a single configuration file and a single binary. Also comes a a Docker image.
 
 Key differences compared to existing systems:
 
@@ -27,7 +27,7 @@ choice already, and this isn't it.
 But if you miss features that should be in every monitoring solution, do let
 me know! Open an issue please.
 
-## Sample configuration 
+## Sample configuration (without Docker)
 Note that this configuration is completely functional, you need nothing
 else, except a working [Pushover](https://pushover.net/) or [ntfy](https://ntfy.sh/)
 account. If you need something else, do let me know.
@@ -84,6 +84,11 @@ httpredir{fromUrl="https://www.berthub.eu", toUrl="https://berthub.eu/"}
 
 Save this as 'simplomon.conf' and start './simplomon' and you should be in
 business.
+
+## Docker
+There is [an image on the Docker hub](https://hub.docker.com/repository/docker/berthubert/simplomon/general) which you can pull (berthubert/simplomon).
+
+The image will read its configuration file from the HTTPS URL supplied in the SIMPLOMON_CONFIG_URL environment variable.
 
 ## Compiling
 On Debian derived systems the following works:

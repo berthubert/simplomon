@@ -1,11 +1,11 @@
 # simplomon
-Very simple monitoring system with a single configuration file and a single binary. Also comes a a Docker image.
+Very simple availability monitoring system with a single configuration file and a single binary. Also comes a a Docker image.
 
 Key differences compared to existing systems:
 
  * Setup in 5 minutes, no need to ever think about it anymore
  * Also check what should not work (ports that should be closed)
- * Pin certain things how they _should_ be (like NS records)
+ * Pin certain things to how they _should_ be (like NS records)
  * Advanced features by default
    * certificate expiry checking
    * DNS synchronization
@@ -22,15 +22,15 @@ You'd also use this if you just want to do stuff like this out of the box:
  * If you want to get timely notifications of TLS certificates expiring
 
 If you want a full featured complicated monitoring system, there is lots of
-choice already, and this isn't it.
+choice already, and this isn't it. Also, as it stands simplomon won't scale to thousands of checks.
 
-But if you miss features that just make sense, do let me know!  Open an
+If you miss features that just make sense, do let me know!  Open an
 issue please.
 
 ## Sample configuration (without Docker)
-Note that this configuration is completely functional, you need nothing
+Note that the configuration below is completely functional, you need nothing
 else, except a working [Pushover](https://pushover.net/) or [ntfy](https://ntfy.sh/)
-account. If you need something else, do let me know.
+account, or a mailbox. If you need another notifier, do let me know.
 
 ```lua
 pushoverNotifier{user="copy this in from pushover config",
@@ -41,7 +41,12 @@ pushoverNotifier{user="copy this in from pushover config",
 
 -- or email
 --emailNotifier{from="bert@example.com", to="bert@example.com", server="10.0.0.2"}
+```
+Pushover appears to work really well, and I'd prefer it to ntfy. Email meanwhile is a bit scary, since it might need the very infrastructure it monitors to send out notifications. You might never get that email.
 
+Here are some sample checkers:
+
+```lua
 dailyChime{utcHour=10} -- 10AM UTC chime confirms monitoring works
 
 -- the following checks certificates, and whines if any expire within
@@ -92,8 +97,9 @@ business.
 
  * SMTP checker
  * IMAP checker
- * Both with actual certificate checks, including STARTTLS to get to them
+   * Both with actual certificate checks, including STARTTLS to get to them
  * Generic port *open* test
+ * Ping
  * HTTP *POST* support
  * HTTP JSON check
  * Expose running checks as JSON, with simple overview website
@@ -103,8 +109,6 @@ business.
  * Hook up the 'minimum x alerts in y minutes' code again
  * Allow you to name checks optionally
  * Unify the check parameter parsing code to support the above two lines
-
-
 
 ## Docker
 There is [an image on the Docker hub](https://hub.docker.com/repository/docker/berthubert/simplomon/general) which you can pull (berthubert/simplomon).

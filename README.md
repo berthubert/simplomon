@@ -88,6 +88,24 @@ httpredir{fromUrl="https://www.berthub.eu", toUrl="https://berthub.eu/"}
 Save this as 'simplomon.conf' and start './simplomon' and you should be in
 business.
 
+## Todo
+
+ * SMTP checker
+ * IMAP checker
+ * Both with actual certificate checks, including STARTTLS to get to them
+ * Generic port *open* test
+ * HTTP *POST* support
+ * HTTP JSON check
+ * Expose running checks as JSON, with simple overview website
+ * Enable checks to publish metadata
+ * Performance tests ("average response time past hour > 100ms")
+ * Enable Check config statements to create multiple kinds of alerts
+ * Hook up the 'minimum x alerts in y minutes' code again
+ * Allow you to name checks optionally
+ * Unify the check parameter parsing code to support the above two lines
+
+
+
 ## Docker
 There is [an image on the Docker hub](https://hub.docker.com/repository/docker/berthubert/simplomon/general) which you can pull (berthubert/simplomon).
 

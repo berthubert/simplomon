@@ -1,5 +1,5 @@
 # simplomon
-Very simple availability monitoring system with a single configuration file and a single binary. Also comes a a Docker image.
+Very simple availability monitoring system with a single configuration file and a single binary. Also comes as a Docker image.
 
 Key differences compared to existing systems:
 
@@ -119,7 +119,7 @@ The image will read its configuration file from the HTTPS URL supplied in the SI
 On Debian derived systems the following works:
 
 ```
-apt install python3-pip pkg-config libnghttp2-dev
+apt install python3-pip pkg-config libnghttp2-dev libssl-dev liblua5.3-dev
 ```
 In addition, the project requires a recent version of meson, which you can
 get with 'pip3 install meson ninja' or perhaps 'pip install

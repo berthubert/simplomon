@@ -9,7 +9,7 @@
 
 using namespace std;
 
-DNSChecker::DNSChecker(sol::table data)
+DNSChecker::DNSChecker(sol::table data) : Checker(data, 2)
 {
   checkLuaTable(data, {"server", "name", "type", "acceptable"}, {"rd"});
   d_nsip = ComboAddress(data.get<string>("server"), 53);
@@ -90,15 +90,8 @@ CheckResult DNSChecker::perform()
   
 }
 
-DNSSOAChecker::DNSSOAChecker(const std::string& domain,
-                       const std::set<std::string>& servers)
-{
-  d_domain = makeDNSName(domain);
-  for(const auto& s : servers)
-    d_servers.insert(ComboAddress(s, 53));
-}
 
-DNSSOAChecker::DNSSOAChecker(sol::table data)
+DNSSOAChecker::DNSSOAChecker(sol::table data) : Checker(data, 2)
 {
   checkLuaTable(data, {"domain", "servers"});
   d_domain = makeDNSName(data.get<string>("domain"));
@@ -131,8 +124,6 @@ CheckResult DNSSOAChecker::perform()
       return fmt::format("Timeout asking DNS question for {}|{} to {}",
                             d_domain.toString(), toString(DNSType::SOA), s.toStringWithPort());
     }
-    
-    
     string resp = SRecvfrom(sock, 65535, server);
     
     DNSMessageReader dmr(resp);
@@ -174,8 +165,8 @@ CheckResult DNSSOAChecker::perform()
   }  
 }
 
-
-RRSIGChecker::RRSIGChecker(sol::table data)
+// minimum of 2 failures
+RRSIGChecker::RRSIGChecker(sol::table data) : Checker(data, 2)
 {
   checkLuaTable(data, {"server", "name"}, {"minDays", "type"});
   d_nsip = ComboAddress(data.get<string>("server"), 53);

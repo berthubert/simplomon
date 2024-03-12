@@ -53,7 +53,15 @@ struct CheckResult
 class Checker
 {
 public:
-  Checker() {}
+  Checker(sol::table& data, int minFailures = -1)
+  {
+    if(minFailures >= 0)
+      d_minfailures = minFailures;
+    d_minfailures = data.get_or("minFailures", d_minfailures);
+    d_failurewin =  data.get_or("failureWindow", d_failurewin);
+    data["minFailures"] = sol::lua_nil;
+    data["failureWindow"] = sol::lua_nil;
+  }
   Checker(const Checker&) = delete;
   virtual CheckResult perform() = 0;
 
@@ -69,8 +77,8 @@ public:
   }
   
   AlertFilter d_af;
-  int d_minalerts=1;
-  int d_alertwindow = 60;
+  int d_minfailures=1;
+  int d_failurewin = 60;
   std::string d_alertedreason;
   
 private:

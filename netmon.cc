@@ -9,15 +9,8 @@
 
 using namespace std;
 
-TCPPortClosedChecker::TCPPortClosedChecker(const std::set<std::string>& servers,
-                                           const std::set<int>& ports)
-  : d_ports(ports)
-{
-  for(const auto& s : servers)
-    d_servers.insert(ComboAddress(s));
-}
 
-TCPPortClosedChecker::TCPPortClosedChecker(sol::table data)
+TCPPortClosedChecker::TCPPortClosedChecker(sol::table data) : Checker(data)
 {
   checkLuaTable(data, {"servers", "ports"});
   for(const auto& s: data.get<vector<string>>("servers")) {
@@ -62,14 +55,15 @@ CheckResult TCPPortClosedChecker::perform()
   return "";
 }
 
-HTTPSChecker::HTTPSChecker(sol::table data)
+HTTPSChecker::HTTPSChecker(sol::table data) : Checker(data)
 {
   checkLuaTable(data, {"url"}, {"maxAgeMinutes", "minBytes", "minCertDays", "serverIP"});
-  d_minBytes = data.get_or("minBytes", 0);
   d_url = data.get<string>("url");
-  d_minCertDays = data.get_or("minCertDays", 14);
   d_maxAgeMinutes =data.get_or("maxAgeMinutes", 0);
-  string serverip = data.get_or("serverIP", string(""));
+  d_minCertDays =  data.get_or("minCertDays", 14);
+  string serverip= data.get_or("serverIP", string(""));
+  d_minBytes =     data.get_or("minBytes", 0);
+
   if(!serverip.empty())
     d_serverIP = ComboAddress(serverip, 443);
 }
@@ -143,7 +137,7 @@ CheckResult HTTPSChecker::perform()
   return "";
 }
 
-HTTPRedirChecker::HTTPRedirChecker(sol::table data)
+HTTPRedirChecker::HTTPRedirChecker(sol::table data) : Checker(data)
 {
   checkLuaTable(data, {"fromUrl", "toUrl"});
   

@@ -42,7 +42,7 @@ void checkLuaTable(sol::table data,
 class DailyChimeChecker : public Checker
 {
 public:
-  DailyChimeChecker(sol::table data)
+  DailyChimeChecker(sol::table data) : Checker(data)
   {
     checkLuaTable(data, {"utcHour"});
     d_utcHour = data["utcHour"];

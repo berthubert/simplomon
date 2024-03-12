@@ -73,7 +73,7 @@ int main(int argc, char **argv)
         c.checker->d_af.reportAlert();
 
       // we could still be in an alert, even though the check was ok now
-      bool inAlert = c.checker->d_af.shouldAlert(c.checker->d_minalerts, c.checker->d_alertwindow);
+      bool inAlert = c.checker->d_af.shouldAlert(c.checker->d_minfailures, c.checker->d_failurewin);
       if(!inAlert) {// muted
         if(!reason.empty())
           fmt::print("Muting an alert since it does not yet meet threshold. The alert: {}\n", reason);

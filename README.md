@@ -52,7 +52,9 @@ dailyChime{utcHour=10} -- 10AM UTC chime confirms monitoring works
 -- the following checks certificates, and whines if any expire within
 -- two weeks
 https{url="https://berthub.eu"}
-https{url="https://galmon.eu/"}
+
+-- save bandwidth, don't fetch the body
+https{url="https://galmon.eu/", method="HEAD"}
 
 -- This complains if that URL is older than 20 minutes
 https{url="https://berthub.eu/nlelec/dutch-stack.svg", maxAgeMinutes=20}

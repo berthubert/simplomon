@@ -55,7 +55,15 @@ curl_dep = dependency(
 )
 
 
-lua_dep = dependency('lua-5.3', static: true)
+foreach name : ['lua-5.3', 'lua53']
+    lua_dep = dependency(name, version: '>=5.3', required: false, static: true)
+    if lua_dep.found()
+        break
+    endif
+endforeach
+if not lua_dep.found()
+    error('Lua 5.3 could not be found')
+endif
 
 cpphttplib = dependency('cpp-httplib')
 # sqlitewriter_dep = dependency('sqlitewriter', static: true)

@@ -20,6 +20,7 @@ vector<CheckerNotifierCombo> g_checkers;
 vector<std::shared_ptr<Notifier>> g_notifiers;
 
 int main(int argc, char **argv)
+try
 {
   initLua();
   try {
@@ -108,4 +109,12 @@ int main(int argc, char **argv)
     }
     sleep(60);
   }
+}
+catch(std::exception& e)
+{
+  fmt::print("Fatal error: {}\n", e.what());
+}
+catch(...)
+{
+  fmt::print("Fatal error\n");
 }

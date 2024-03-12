@@ -43,7 +43,7 @@ public:
   ~MiniCurl();
   MiniCurl& operator=(const MiniCurl&) = delete;
   typedef std::map<int, std::map<std::string, std::string>> certinfo_t;
-  std::string getURL(const std::string& str, certinfo_t* ciptr=0, const ComboAddress* rem=0, const ComboAddress* src=0);
+  std::string getURL(const std::string& str, const bool nobody=0, certinfo_t* ciptr=0, const ComboAddress* rem=0, const ComboAddress* src=0);
   std::string postURL(const std::string& str, const std::string& postdata, MiniCurlHeaders& headers);
 
   std::string urlEncode(std::string_view str);

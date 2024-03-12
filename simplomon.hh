@@ -156,6 +156,7 @@ private:
   unsigned int d_minBytes = 0;
   unsigned int d_minCertDays = 14;
   std::optional<ComboAddress> d_serverIP;
+  std::string d_method;
 };
 
 class HTTPRedirChecker : public Checker

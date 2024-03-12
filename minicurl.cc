@@ -121,14 +121,15 @@ void MiniCurl::setupURL(const std::string& str, const ComboAddress* rem, const C
   curl_easy_setopt(d_curl, CURLOPT_CERTINFO, 1L);
   curl_easy_setopt(d_curl, CURLOPT_FILETIME, 1L);
 
-
   clearHeaders();
   d_data.clear();
 }
 
-std::string MiniCurl::getURL(const std::string& str, MiniCurl::certinfo_t* ciptr, const ComboAddress* rem, const ComboAddress* src)
+std::string MiniCurl::getURL(const std::string& str, const bool nobody, MiniCurl::certinfo_t* ciptr, const ComboAddress* rem, const ComboAddress* src)
 {
   setupURL(str, rem, src);
+  if (nobody)
+    curl_easy_setopt(d_curl, CURLOPT_NOBODY, 1L);
   auto res = curl_easy_perform(d_curl);
 
   if(res != CURLE_OK)  {

@@ -57,15 +57,18 @@ CheckResult TCPPortClosedChecker::perform()
 
 HTTPSChecker::HTTPSChecker(sol::table data) : Checker(data)
 {
-  checkLuaTable(data, {"url"}, {"maxAgeMinutes", "minBytes", "minCertDays", "serverIP"});
+  checkLuaTable(data, {"url"}, {"maxAgeMinutes", "minBytes", "minCertDays", "serverIP", "method"});
   d_url = data.get<string>("url");
   d_maxAgeMinutes =data.get_or("maxAgeMinutes", 0);
   d_minCertDays =  data.get_or("minCertDays", 14);
   string serverip= data.get_or("serverIP", string(""));
   d_minBytes =     data.get_or("minBytes", 0);
+  d_method =       data.get_or("method", string("GET"));
 
   if(!serverip.empty())
     d_serverIP = ComboAddress(serverip, 443);
+  if (d_method != "GET" && d_method != "HEAD")
+    throw runtime_error(fmt::format("only support HTTP HEAD & GET methods, not '{}'", d_method));
 }
 
 CheckResult HTTPSChecker::perform()
@@ -79,8 +82,8 @@ CheckResult HTTPSChecker::perform()
     MiniCurl mc;
     MiniCurl::certinfo_t certinfo;
     // XXX also do POST
-    string body = mc.getURL(d_url, &certinfo,
-                            d_serverIP.has_value() ? &*d_serverIP : 0 );
+    string body = mc.getURL(d_url, d_method == "HEAD", &certinfo,
+                            d_serverIP.has_value() ? &*d_serverIP : 0);
     if(mc.d_http_code >= 400)
       return fmt::format("Content {} generated a {} status code{}", d_url, mc.d_http_code, serverIP);
     

@@ -48,6 +48,8 @@ Here are some sample checkers:
 ```lua
 dailyChime{utcHour=10} -- 10AM UTC chime confirms monitoring works
 
+ping{servers={"9.9.9.9"}} -- does our network even work
+
 -- the following checks certificates, and whines if any expire within
 -- two weeks
 https{url="https://berthub.eu"}
@@ -94,22 +96,27 @@ httpredir{fromUrl="https://www.berthub.eu", toUrl="https://berthub.eu/"}
 Save this as 'simplomon.conf' and start './simplomon' and you should be in
 business.
 
+## Webserver
+
+BEWARE: Simplomon launches a webserver on port 0.0.0.0:8080 which currently
+supports two endpoints:
+
+ * /health: generates {"health":"ok"} which appears to make some Docker
+   environments happy
+ * /state: creates a JSON object of all active alerts
+
 ## Todo
 
  * SMTP checker
  * IMAP checker
    * Both with actual certificate checks, including STARTTLS to get to them
  * Generic port *open* test
- * Ping
  * HTTP *POST* support
  * HTTP JSON check
- * Expose running checks as JSON, with simple overview website
+ * Build simple status page based on our JSON output
  * Enable checks to publish metadata
  * Performance tests ("average response time past hour > 100ms")
  * Enable Check config statements to create multiple kinds of alerts
- * Hook up the 'minimum x alerts in y minutes' code again
- * Allow you to name checks optionally
- * Unify the check parameter parsing code to support the above two lines
 
 ## Docker
 There is [an image on the Docker hub](https://hub.docker.com/repository/docker/berthubert/simplomon/general) which you can pull (berthubert/simplomon).

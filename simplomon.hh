@@ -139,6 +139,18 @@ private:
   std::set<int> d_ports;
 };
 
+
+class PINGChecker : public Checker
+{
+public:
+  PINGChecker(sol::table data);
+  CheckResult perform() override;
+
+private:
+  std::set<ComboAddress> d_servers;
+};
+
+
 class HTTPSChecker : public Checker
 {
 public:

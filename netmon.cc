@@ -6,9 +6,13 @@
 #include "simplomon.hh"
 #include "minicurl.hh"
 #include "httplib.h"
+#include <netinet/in.h>
+#include <netinet/ip_icmp.h>
+#include <netinet/ip6.h>
+#include <netinet/icmp6.h>
+#include "support.hh"
 
 using namespace std;
-
 
 TCPPortClosedChecker::TCPPortClosedChecker(sol::table data) : Checker(data)
 {
@@ -20,7 +24,6 @@ TCPPortClosedChecker::TCPPortClosedChecker(sol::table data) : Checker(data)
     d_ports.insert(s);
   }
 }
-
 
 CheckResult TCPPortClosedChecker::perform()
 {
@@ -72,7 +75,6 @@ HTTPSChecker::HTTPSChecker(sol::table data) : Checker(data)
 }
 
 CheckResult HTTPSChecker::perform()
-
 {
   string serverIP;
   if(d_serverIP.has_value())
@@ -180,5 +182,115 @@ CheckResult HTTPRedirChecker::perform()
 
   //  fmt::print("Was all cool, HTTP redirection check from '{}{}' to '{}' got '{}'\n",
   //         d_fromhostpart, d_frompath, d_tourl, dest);
+  return "";
+}
+
+
+#define PACKETSIZE	1024
+namespace {
+struct icmppacket
+{
+	struct icmphdr hdr;
+	char msg[PACKETSIZE-sizeof(struct icmphdr)];
+};
+}
+/*--------------------------------------------------------------------*/
+/*--- checksum - standard 1s complement checksum                   ---*/
+/*--------------------------------------------------------------------*/
+static unsigned short internetchecksum(void *b, int len)
+{	unsigned short *buf = (unsigned short*)b;
+	unsigned int sum=0;
+	unsigned short result;
+
+	for ( sum = 0; len > 1; len -= 2 )
+		sum += *buf++;
+	if ( len == 1 )
+		sum += *(unsigned char*)buf;
+	sum = (sum >> 16) + (sum & 0xFFFF);
+	sum += (sum >> 16);
+	result = ~sum;
+	return result;
+}
+
+static std::string makeICMPQuery(int family, uint16_t id, uint16_t seq)
+{
+  if(family==AF_INET) {
+    icmppacket p;
+    memset(&p, 0, sizeof(p));
+    p.hdr.type = ICMP_ECHO;
+    p.hdr.un.echo.id = id;
+    p.hdr.un.echo.sequence = seq;
+    unsigned int i;
+    for(i = 0; i < sizeof(p.msg)-1; i++ )
+      p.msg[i] = i+'0';
+    p.msg[i] = 0;
+    
+    
+    p.hdr.checksum = 0;
+    p.hdr.checksum = internetchecksum(&p, sizeof(p));
+    return std::string((const char*)&p, sizeof(p));
+  }
+  else {
+    /* compose ICMPv6 packet */
+    struct icmp6_hdr hdr;
+    memset(&hdr, 0, sizeof(hdr));
+
+    hdr.icmp6_type                      = ICMP6_ECHO_REQUEST;
+    hdr.icmp6_code                      = 0;
+    hdr.icmp6_dataun.icmp6_un_data16[0] = id; /* identifier */
+    hdr.icmp6_dataun.icmp6_un_data16[1] = seq; /* sequence no */
+
+    return std::string((const char*)&hdr, sizeof(hdr));
+  }
+}
+
+static void parseICMPResponse(int family, const std::string& packet, uint16_t& id, uint16_t& seq, std::string& payload)
+{
+  if(family == AF_INET) {
+    struct iphdr *ip = (iphdr*)packet.c_str();
+    struct icmphdr* icmp = (struct icmphdr*) ((char*)packet.c_str() + ip->ihl*4);
+    
+    id = icmp->un.echo.id;
+    seq = icmp->un.echo.sequence;
+
+    payload = packet.substr(ip->ihl*4 + sizeof(icmp));
+  }
+  else {
+    struct icmp6_hdr* hdr = (struct icmp6_hdr*) packet.c_str();
+    id = hdr->icmp6_dataun.icmp6_un_data16[0];
+    seq = hdr->icmp6_dataun.icmp6_un_data16[1];
+  }
+}
+
+PINGChecker::PINGChecker(sol::table data) : Checker(data, 2)
+{
+  checkLuaTable(data, {"servers"});
+  for(const auto& s: data.get<vector<string>>("servers")) {
+    d_servers.insert(ComboAddress(s));
+  }
+}
+
+CheckResult PINGChecker::perform()
+{
+  for(const auto& s : d_servers) {
+    Socket sock(s.sin4.sin_family, SOCK_DGRAM, IPPROTO_ICMP);
+    SConnect(sock, s);
+    string packet = makeICMPQuery(s.sin4.sin_family, 1, 1);
+    DTime dt;
+    dt.start();
+    SWrite(sock, packet);
+    double timeo=1.0;
+    if(!waitForData(sock, &timeo)) { // timeout
+      return fmt::format("Timeout waiting for ping response from {}",
+                         s.toString());
+    }
+    uint16_t id, seq;
+    string payload;
+    ComboAddress server=s;
+    string resp = SRecvfrom(sock, 65535, server);
+    parseICMPResponse(s.sin4.sin_family, resp, id, seq, payload);
+    //    fmt::print("Got ping response from {} with id {} and seq {}: {} msec\n",
+    //               s.toString(), id, seq, dt.lapUsec()/1000.0);
+  }
   return "";
 }

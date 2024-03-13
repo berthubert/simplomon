@@ -71,7 +71,7 @@ doctest_dep=dependency('doctest')
 simplesockets_dep = dependency('simplesockets', static: true)
 # argparse_dep = dependency('argparse', version: '>=3')
 
-executable('simplomon', 'simplomon.cc', 'notifiers.cc', 'minicurl.cc', 'dnsmon.cc', 'record-types.cc', 'dnsmessages.cc', 'dns-storage.cc', 'netmon.cc', 'luabridge.cc',
+executable('simplomon', 'simplomon.cc', 'notifiers.cc', 'minicurl.cc', 'dnsmon.cc', 'record-types.cc', 'dnsmessages.cc', 'dns-storage.cc', 'netmon.cc', 'luabridge.cc', 'webservice.cc',
 	dependencies: [json_dep, fmt_dep, cpphttplib, 
 	simplesockets_dep, lua_dep, curl_dep])
 

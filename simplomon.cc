@@ -91,6 +91,8 @@ try
     fmt::print("Did not configure a notifier, can't notify anything\n");
   }
 
+  startWebService();
+  
   CheckResultFilter crf;
   auto prevFiltered = crf.getFilteredResults(); // should be none
   for(;;) {

@@ -14,12 +14,11 @@ Key differences compared to existing systems:
 
 You'd use this if you think "I need to slap some monitoring on this pronto
 and I can't be bothered to setup something difficult that will require
-maintenance or get hacked".
+maintenance or get hacked". Another usecase if you want to monitor from a
+vantage point where you can't install large-scale software.
 
-You'd also use this if you just want to do stuff like this out of the box:
-
- * Check if all DNS servers are updating
- * If you want to get timely notifications of TLS certificates expiring
+You'd also use this if you appreciate some of the 'smarter' checks described
+above.
 
 If you want a full featured complicated monitoring system, there is lots of
 choice already, and this isn't it. Also, as it stands simplomon won't scale to thousands of checks.

@@ -94,6 +94,8 @@ try
   CheckResultFilter crf;
   auto prevFiltered = crf.getFilteredResults(); // should be none
   for(;;) {
+    time_t startRun = time(nullptr);
+    
     for(auto &c : g_checkers) {
       string reason;
       try {
@@ -156,7 +158,12 @@ try
     fmt::print("{} alerts were resolved\n", diff.size());
     sendOut(false);
     prevFiltered = filtered;
-    sleep(60);
+    time_t passed = time(nullptr) - startRun;
+    if(passed < 60) {
+      int sleeptime = 60 - passed;
+      fmt::print("Sleeping {} seconds\n", sleeptime);
+      sleep(sleeptime);
+    }
   }
 }
 catch(std::exception& e)

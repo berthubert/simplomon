@@ -1,0 +1,35 @@
+FROM debian:bookworm AS builder
+RUN apt-get update -yqq && apt-get install -yqq \
+    build-essential \
+    git \
+    meson \
+    nlohmann-json3-dev \
+    libnghttp2-dev \
+    liblua5.3-dev \
+    pkg-config \
+    cmake \
+    openssl \
+    libssl-dev \
+    zlib1g-dev
+COPY . /src
+WORKDIR /src
+
+# we want to build cleanly so we ask meson to generate a tarball of the project
+RUN rm -rf build/ && meson setup build && meson dist -C build --allow-dirty --no-tests
+
+RUN mkdir /project
+WORKDIR /project
+
+# extract the tarball meson made for us and move the content up to where we are
+RUN tar xf /src/build/meson-dist/simplomon-*.tar.xz && mv simplomon-*/* .
+
+RUN LDFLAGS=-static meson setup build --prefer-static -Dbuildtype=release 
+RUN meson compile -C build/
+RUN strip build/simplomon
+RUN tar cvhf certs.tar /etc/ssl/certs/ca-certificates.crt  /usr/lib/ssl/openssl.cnf /usr/lib/ssl/certs/*
+FROM scratch
+ADD certs.tar /
+COPY --from=builder /project/build/simplomon simplomon
+VOLUME /config
+
+ENTRYPOINT ["/simplomon"]

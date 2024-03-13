@@ -174,3 +174,4 @@ void checkLuaTable(sol::table data,
                    const std::set<std::string>& opt = std::set<std::string>());
 
 void startWebService();
+void giveToWebService(const std::set<pair<Checker*, std::string>>&);

@@ -121,6 +121,8 @@ try
     // these are the active filtered alerts
     auto filtered = crf.getFilteredResults();
     fmt::print("Got {} filtered results\n", filtered.size());
+
+    giveToWebService(filtered);
     
     decltype(filtered) diff;
     set_difference(filtered.begin(), filtered.end(),

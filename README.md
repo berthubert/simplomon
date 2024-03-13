@@ -73,16 +73,16 @@ dnssoa{domain="hubertnet.nl", servers= nameservers}
 rrsig{server="45.55.10.200", name="powerdns.com"}
 rrsig{server="188.166.104.87", name="powerdns.com"}
 rrsig{server="149.20.2.26", name="isc.org", minDays=10}
-rrsig{server="100.25.31.6", name="berthub.eu"} 
+rrsig{server="100.25.31.6", name="berthub.eu"}
 
 -- Check if the following ports are closed
 scaryports={25, 80, 110, 443, 3000, 3306, 5000, 5432, 8000, 8080, 8888}
 tcpportclosed{servers={"100.25.31.6"}, ports=scaryports}
 
 -- Check if DNS is serving what it should be
-dns{server="100.25.31.6", name="berthub.eu", type="A", 
+dns{server="100.25.31.6", name="berthub.eu", type="A",
 	acceptable={"86.82.68.237", "217.100.190.174"}}
-dns{server="100.25.31.6", name="berthub.eu", type="AAAA", 
+dns{server="100.25.31.6", name="berthub.eu", type="AAAA",
 	acceptable={"2001:41f0:782d::2"}}
 
 -- Does the http redirect work?
@@ -90,7 +90,7 @@ httpredir{fromUrl="http://berthub.eu", toUrl="https://berthub.eu/"}
 
 -- And the www redirects?
 httpredir{fromUrl="http://www.berthub.eu", toUrl="https://berthub.eu/"}
-httpredir{fromUrl="https://www.berthub.eu", toUrl="https://berthub.eu/"}     
+httpredir{fromUrl="https://www.berthub.eu", toUrl="https://berthub.eu/"}
 ```
 
 Save this as 'simplomon.conf' and start './simplomon' and you should be in
@@ -136,6 +136,54 @@ service](https://www.scaleway.com/en/containers/). It makes perfect sense to
 host your monitoring somewhere outside of your own network. Note that
 Scaleway sadly has no support for outgoing IPv6.
 
+## Running Docker on a server
+To run the simplomon service on a Linux server it is easy to wrap a little systemd service definition around it.
+* A systemd-based Linux server is needed with root access
+* install docker
+* create the config file as `/etc/simplomon.conf`
+* create a systemd service definition file `/etc/systemd/system/simplomon.service` with these contents:
+```
+[Unit]
+Description=Simplomon Monitoring Service
+After=docker.service
+Requires=docker.service
+
+[Service]
+TimeoutStartSec=0
+Restart=always
+ExecStartPre=-/usr/bin/docker exec %n stop
+ExecStartPre=-/usr/bin/docker rm %n
+ExecStartPre=/usr/bin/docker pull berthubert/simplomon
+ExecStart=docker run  \
+    -v /etc/simplomon.conf:/simplomon.conf  \
+    --name %n \
+    berthubert/simplomon
+
+[Install]
+WantedBy=default.target
+```
+* let systemd reload config with `systemctl daemon-reload`
+* enable the service with `systemctl enable simplomon.service`
+* start the service with `systemctl start simplomon.service`
+
+checking if it has started correctly:
+```# systemctl status simplomon.service
+● simplomon.service - Simplomon Monitoring Service
+     Loaded: loaded (/etc/systemd/system/simplomon.service; enabled; vendor preset: enabled)
+     Active: failed (Result: timeout) since Wed 2024-03-13 21:07:11 UTC; 10min ago
+    Process: 368586 ExecStartPre=/usr/bin/docker exec simplomon.service stop (code=exited, status=1/FAILURE)
+    Process: 368595 ExecStartPre=/usr/bin/docker rm simplomon.service (code=exited, status=0/SUCCESS)
+    Process: 368624 ExecStartPre=/usr/bin/docker pull berthubert/simplomon (code=exited, status=0/SUCCESS)
+    Process: 368647 ExecStart=/usr/bin/docker run -v /etc/simplomon.conf:/simplomon.conf --name simplomon.service berthubert/simplomon (code=killed, signal=KILL)
+   Main PID: 368647 (code=killed, signal=KILL)
+```
+
+check the log with `journalctl -u simplomon.service`
+
+### notes
+- it is normal that the `docker exec stop` or the `docker rm` commands might fail in the status output; they are there to make sure previous instances have been stopped
+- Stopping the service might take up to a minute, since the simplomon service can sleep for some time
+
 ## Compiling natively
 On Debian derived systems the following works:
 
@@ -177,5 +225,4 @@ meson compile -C build/
 # Inspiration
 
  * [Uptime Kuma](https://github.com/louislam/uptime-kuma) - single Docker
-   image. 
-
+   image.

@@ -14,10 +14,45 @@
 
 using namespace std;
 
-
-vector<CheckerNotifierCombo> g_checkers;
-
+vector<std::unique_ptr<Checker>> g_checkers;
 vector<std::shared_ptr<Notifier>> g_notifiers;
+
+/* the idea
+   Every checker can generate multiple alerts.
+   However, some alerts should only be reported if they persist for a bit
+   This means we should only pass on an alert if we've seen it for a while nown
+   Alerts can't generate persistent identifiers (id) for the same alert 
+   So we must use the text representation and the checker should keep that constant
+
+   our throtle then consists of a set of strings and when they were reported per checker
+   If a checker stops reporting that string, that is fine
+
+   we ask the throttle: give me a list of active alerts
+   We never talk to the checker directly
+*/
+
+set<pair<Checker*, std::string>> CheckResultFilter::getFilteredResults()
+{
+
+  set<pair<Checker*, std::string>> ret;
+  time_t now = time(nullptr);
+
+  //  map<Checker*, map<std::string, set<time_t> > > d_reports;
+  for(const auto& r : d_reports) {
+    Checker& ptr = *r.first;
+    time_t lim = now - ptr.d_failurewin;
+    for(const auto& sp : r.second) {
+      int count = count_if(sp.second.begin(), sp.second.end(),
+                           [&](const auto& r) { return r >= lim; });
+      if(count >= ptr.d_minfailures)
+        ret.emplace(&ptr, sp.first);
+      else
+        fmt::print("Alert '{}' not repeated enough in {} seconds, {} < {}\n",
+                   sp.first, ptr.d_failurewin, count, ptr.d_minfailures);
+    }
+  }
+  return ret;
+}
 
 int main(int argc, char **argv)
 try
@@ -56,11 +91,13 @@ try
     fmt::print("Did not configure a notifier, can't notify anything\n");
   }
 
+  CheckResultFilter crf;
+  auto prevFiltered = crf.getFilteredResults(); // should be none
   for(;;) {
     for(auto &c : g_checkers) {
       string reason;
       try {
-        CheckResult cr = c.checker->perform();
+        CheckResult cr = c->perform();
         reason = cr.d_reason;
       }
       catch(exception& e) {
@@ -70,43 +107,55 @@ try
         reason = "Unknown exception caught";
       }
 
-      if(!reason.empty())
-        c.checker->d_af.reportAlert();
-
-      // we could still be in an alert, even though the check was ok now
-      bool inAlert = c.checker->d_af.shouldAlert(c.checker->d_minfailures, c.checker->d_failurewin);
-      if(!inAlert) {// muted
-        if(!reason.empty())
-          fmt::print("Muting an alert since it does not yet meet threshold. The alert: {}\n", reason);
-        reason="";
+      if(!reason.empty()) {
+        crf.reportResult(c.get(), reason);
+        fmt::print("\nreporting: '{}'", reason);
       }
-      else if(reason.empty()) {
-        fmt::print("Continuing alert, despite test now saying it is ok\n");
-        reason = c.checker->d_alertedreason; // maintain alert
-      }
-      
-      if(reason != c.checker->d_alertedreason) { // change of state
-        string msg;
-        if(!reason.empty()) 
-          msg=fmt::format("{}\n", reason);
-        else
-          msg=fmt::format("🥳 The following alert is resolved: {}\n", c.checker->d_alertedreason);
-        c.checker->d_alertedreason = reason;
-
-        for(const auto & n : c.notifiers) {
+      fmt::print("."); cout.flush();
+    }
+    fmt::print("\n");
+    // these are the active filtered alerts
+    auto filtered = crf.getFilteredResults();
+    fmt::print("Got {} filtered results\n", filtered.size());
+    
+    decltype(filtered) diff;
+    set_difference(filtered.begin(), filtered.end(),
+                   prevFiltered.begin(), prevFiltered.end(),
+                   inserter(diff, diff.begin()));
+    
+    fmt::print("Got {} NEW results\n", diff.size());
+    auto sendOut=[&](bool newOld) {
+      for(const auto& f : diff) {
+        for(const auto & n : f.first->notifiers) {
           try {
-            n->alert(msg);
+            if(newOld) {
+              n->alert(f.second);
+            }
+            else {
+              n->alert(fmt::format("🎉 the following alert is over: {}", f.second));
+            }
           }
           catch(exception& e) {
             fmt::print("Failed to send notification: {}\n", e.what());
           }
         }
-        fmt::print("Sent out notification: {}\n", msg);
+        if(newOld) 
+          fmt::print("Sent out notification: {}\n", f.second);
+        else
+          fmt::print("Sent out resolved: {}\n", f.second);
       }
-      else if(!reason.empty()) {
-        fmt::print("Alert '{}' still active, but reported already\n", reason);
-      }
-    }
+    };
+
+    sendOut(true);
+      
+
+    diff.clear();
+    set_difference(prevFiltered.begin(), prevFiltered.end(),
+                   filtered.begin(), filtered.end(),
+                   inserter(diff, diff.begin()));
+    fmt::print("{} alerts were resolved\n", diff.size());
+    sendOut(false);
+    prevFiltered = filtered;
     sleep(60);
   }
 }

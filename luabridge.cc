@@ -67,28 +67,28 @@ void initLua()
   g_lua.open_libraries(sol::lib::base, sol::lib::package);
 
   g_lua.set_function("dailyChime", [&](sol::table data) {
-    g_checkers.emplace_back(make_unique<DailyChimeChecker>(data), g_notifiers);
+    g_checkers.emplace_back(make_unique<DailyChimeChecker>(data));
   });
 
   g_lua.set_function("https", [&](sol::table data) {
-    g_checkers.emplace_back(make_unique<HTTPSChecker>(data), g_notifiers);
+    g_checkers.emplace_back(make_unique<HTTPSChecker>(data));
   });
   g_lua.set_function("dnssoa", [&](sol::table data) {
-    g_checkers.emplace_back(make_unique<DNSSOAChecker>(data), g_notifiers);
+    g_checkers.emplace_back(make_unique<DNSSOAChecker>(data));
   });
   g_lua.set_function("tcpportclosed", [&](sol::table data) {
-    g_checkers.emplace_back(make_unique<TCPPortClosedChecker>(data), g_notifiers);
+    g_checkers.emplace_back(make_unique<TCPPortClosedChecker>(data));
   });
   g_lua.set_function("dns", [&](sol::table data) {
-    g_checkers.emplace_back(make_unique<DNSChecker>(data), g_notifiers);
+    g_checkers.emplace_back(make_unique<DNSChecker>(data));
   });
 
   g_lua.set_function("httpredir", [&](sol::table data) {
-    g_checkers.emplace_back(make_unique<HTTPRedirChecker>(data), g_notifiers);
+    g_checkers.emplace_back(make_unique<HTTPRedirChecker>(data));
   });
 
   g_lua.set_function("rrsig", [&](sol::table data) {
-    g_checkers.emplace_back(make_unique<RRSIGChecker>(data), g_notifiers);
+    g_checkers.emplace_back(make_unique<RRSIGChecker>(data));
   });
 
   

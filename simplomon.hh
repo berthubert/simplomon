@@ -13,34 +13,6 @@ extern sol::state g_lua;
 
 void initLua();
 
-// sets alert status if there have been more than x alerts in y seconds
-struct AlertFilter
-{
-  explicit AlertFilter(int maxseconds=3600) : d_maxseconds(maxseconds) {}
-  void reportAlert(time_t t)
-  {
-    alerts.insert(t);
-  }
-  void reportAlert()
-  {
-    alerts.insert(time(nullptr));
-  }
-
-  bool shouldAlert(int numalerts, int numseconds)
-  {
-    time_t lim =time(nullptr) - d_maxseconds;
-    std::erase_if(alerts, [&](const auto& i) { return i < lim; });
-
-    lim = time(nullptr) - numseconds;
-    int count=0;
-    for(auto iter = alerts.lower_bound(lim); iter != alerts.end(); ++iter)
-      ++count;
-    
-    return count >= numalerts;
-  }
-  std::set<time_t> alerts;
-  int d_maxseconds;
-};
 
 struct CheckResult
 {
@@ -49,7 +21,7 @@ struct CheckResult
   CheckResult(const std::string& reason) : d_reason(reason) {}
   std::string d_reason;
 };
-
+extern std::vector<std::shared_ptr<Notifier>> g_notifiers;
 class Checker
 {
 public:
@@ -59,8 +31,12 @@ public:
       d_minfailures = minFailures;
     d_minfailures = data.get_or("minFailures", d_minfailures);
     d_failurewin =  data.get_or("failureWindow", d_failurewin);
+    d_subject = data.get_or("subject", std::string(""));
+    data["subject"] = sol::lua_nil;
     data["minFailures"] = sol::lua_nil;
     data["failureWindow"] = sol::lua_nil;
+    // bake in
+    notifiers = g_notifiers;
   }
   Checker(const Checker&) = delete;
   virtual CheckResult perform() = 0;
@@ -76,15 +52,37 @@ public:
     d_status = cr; 
   }
   
-  AlertFilter d_af;
   int d_minfailures=1;
-  int d_failurewin = 60;
-  std::string d_alertedreason;
-  
+  int d_failurewin = 120;
+
+  std::string d_subject;
+  std::vector<std::shared_ptr<Notifier>> notifiers;  
 private:
   CheckResult d_status;
   std::mutex d_m;
 };
+
+// sets alert status if there have been more than x alerts in y seconds
+struct CheckResultFilter
+{
+  explicit CheckResultFilter(int maxseconds=3600) : d_maxseconds(maxseconds) {}
+  void reportResult(Checker* source, const std::string& cr, time_t t)
+  {
+    d_reports[source][cr].insert(t);
+  }
+  void reportResult(Checker* source, const std::string& cr)
+  {
+    reportResult(source, cr, time(nullptr));
+  }
+
+  std::set<pair<Checker*, std::string>> getFilteredResults();
+
+  map<Checker*, map<std::string, std::set<time_t>> > d_reports;
+  
+  int d_maxseconds;
+};
+
+
 
 class DNSChecker : public Checker
 {
@@ -169,16 +167,9 @@ private:
   std::string d_fromhostpart, d_frompath, d_tourl;
 };
 
-
-struct CheckerNotifierCombo
-{
-  std::unique_ptr<Checker> checker;
-  std::vector<std::shared_ptr<Notifier>> notifiers;
-};
-
-extern std::vector<CheckerNotifierCombo> g_checkers;
+extern std::vector<std::unique_ptr<Checker>> g_checkers;
 
 void checkLuaTable(sol::table data,
                    const std::set<std::string>& mandatory,
                    const std::set<std::string>& opt = std::set<std::string>());
-extern std::vector<std::shared_ptr<Notifier>> g_notifiers;
+

@@ -44,9 +44,9 @@ class DailyChimeChecker : public Checker
 public:
   DailyChimeChecker(sol::table data) : Checker(data)
   {
-    checkLuaTable(data, {"utcHour"});
+    checkLuaTable(data, {"utcHour"}, {"content"});
     d_utcHour = data["utcHour"];
-    
+    d_content = data.get_or("content", string(""));
   }
 
   CheckResult perform()
@@ -55,16 +55,20 @@ public:
     now -= d_utcHour * 3600;
     struct tm tm;
     gmtime_r(&now, &tm);
-    return fmt::format("Your daily chime for {:%Y-%m-%d}. This is not an alert.", tm);
+    if (d_content.empty())
+      return fmt::format("Your daily chime for {:%Y-%m-%d}. This is not an alert.", tm);
+    else
+      return fmt::format("Your daily chime for {:%Y-%m-%d}.\n\n{}", tm, d_content);
   }
 private:
   int d_utcHour;
+  string d_content;
 };
 
 
 void initLua()
 {
-  g_lua.open_libraries(sol::lib::base, sol::lib::package);
+  g_lua.open_libraries(sol::lib::base, sol::lib::io, sol::lib::package);
 
   g_lua.set_function("dailyChime", [&](sol::table data) {
     g_checkers.emplace_back(make_unique<DailyChimeChecker>(data), g_notifiers);

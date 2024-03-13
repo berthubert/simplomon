@@ -116,7 +116,20 @@ There is [an image on the Docker hub](https://hub.docker.com/repository/docker/b
 
 The image will read its configuration file from the HTTPS URL supplied in the SIMPLOMON_CONFIG_URL environment variable.
 
-## Compiling
+To build the image yourself, do:
+
+```bash
+sudo docker build -f Dockerfile.full-build .
+```
+
+This implements a two-stage builder to create an image.
+
+You can host the image for example on Scaleway's [container
+service](https://www.scaleway.com/en/containers/). It makes perfect sense to
+host your monitoring somewhere outside of your own network. Note that
+Scaleway sadly has no support for outgoing IPv6.
+
+## Compiling natively
 On Debian derived systems the following works:
 
 ```

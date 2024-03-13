@@ -49,6 +49,9 @@ Here are some sample checkers:
 ```lua
 dailyChime{utcHour=10} -- 10AM UTC chime confirms monitoring works
 
+-- or with a personalized chime message
+-- dailyChime{utcHour=10, content="goodmorning!"}
+
 -- the following checks certificates, and whines if any expire within
 -- two weeks
 https{url="https://berthub.eu"}

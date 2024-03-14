@@ -36,7 +36,7 @@ void PushoverNotifier::alert(const std::string& msg)
 
 NtfyNotifier::NtfyNotifier(sol::table data)
 {
-  checkLuaTable(data, {"topic"}, {"auth"});
+  checkLuaTable(data, {"topic"}, {"auth", "url"});
   d_auth = data.get_or("auth", string(""));
   d_url = data.get_or("url", string("https://ntfy.sh"));
   d_topic = data.get<string>("topic");
@@ -48,7 +48,7 @@ void NtfyNotifier::alert(const std::string& msg)
   httplib::Headers headers = {};
 
   if (!d_auth.empty())
-    httplib::Headers headers = {{"Authorization", d_auth}};
+    headers = {{"Authorization", d_auth}};
 
   auto res = cli.Post("/"+d_topic, headers, msg, "text/plain");
 

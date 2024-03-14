@@ -103,7 +103,6 @@ void initLua()
   });
 
   g_lua.set_function("ntfyNotifier", [&](sol::table data) {
-    checkLuaTable(data, {"topic"});
     g_notifiers.emplace_back(
                              make_shared<NtfyNotifier>(data));
     return *g_notifiers.rbegin();

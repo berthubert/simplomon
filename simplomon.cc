@@ -20,7 +20,7 @@ vector<std::shared_ptr<Notifier>> g_notifiers;
 /* the idea
    Every checker can generate multiple alerts.
    However, some alerts should only be reported if they persist for a bit
-   This means we should only pass on an alert if we've seen it for a while nown
+   This means we should only pass on an alert if we've seen it for a while now
    Alerts can't generate persistent identifiers (id) for the same alert 
    So we must use the text representation and the checker should keep that constant
 

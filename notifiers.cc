@@ -33,11 +33,25 @@ void PushoverNotifier::alert(const std::string& msg)
                              
 }
 
+
+NtfyNotifier::NtfyNotifier(sol::table data)
+{
+  checkLuaTable(data, {"topic"}, {"auth", "url"});
+  d_auth = data.get_or("auth", string(""));
+  d_url = data.get_or("url", string("https://ntfy.sh"));
+  d_topic = data.get<string>("topic");
+}
+
 void NtfyNotifier::alert(const std::string& msg)
 {
-  httplib::Client cli("https://ntfy.sh");
+  httplib::Client cli(d_url);
+  httplib::Headers headers = {};
 
-  auto res = cli.Post("/"+d_topic, msg, "text/plain");
+  if (!d_auth.empty())
+    headers = {{"Authorization", d_auth}};
+
+  auto res = cli.Post("/"+d_topic, headers, msg, "text/plain");
+
   if(!res) {
     auto err = res.error();
     
@@ -49,6 +63,7 @@ void NtfyNotifier::alert(const std::string& msg)
   fmt::print("{}\n", res->body);
                              
 }
+
 static uint64_t getRandom64()
 {
   static std::random_device rd; // 32 bits at a time. At least on recent Linux and gcc this does not block

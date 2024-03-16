@@ -23,10 +23,10 @@ private:
 class NtfyNotifier : public Notifier
 {
 public:
-  NtfyNotifier(const std::string& topic) : d_topic(topic) {}
+  NtfyNotifier(sol::table data);
   void alert(const std::string& message) override;
 private:
-  std::string d_topic;
+  std::string d_auth, d_url, d_topic;
 };
 
 

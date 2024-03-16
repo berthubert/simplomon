@@ -37,6 +37,8 @@ pushoverNotifier{user="copy this in from pushover config",
 
 -- or ntfy.sh:
 -- ntfyNotifier{topic="your_secret_topic"}
+-- or point to your own instance, or set the Authorization header through 'auth'
+-- ntfyNotifier{topic="your_topic", url="https://ntfy.example.net", auth="Basic dGVzdHVzZXI6ZmFrZXBhc3N3b3Jk"}
 
 -- or email
 --emailNotifier{from="bert@example.com", to="bert@example.com", server="10.0.0.2"}

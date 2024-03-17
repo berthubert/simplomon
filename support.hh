@@ -3,6 +3,10 @@
 
 struct DTime
 {
+  DTime()
+  {
+    start();
+  }
   void start()
   {
     d_start =   std::chrono::steady_clock::now();

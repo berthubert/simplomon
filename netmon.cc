@@ -68,8 +68,15 @@ HTTPSChecker::HTTPSChecker(sol::table data) : Checker(data)
   d_minBytes =     data.get_or("minBytes", 0);
   d_method =       data.get_or("method", string("GET"));
 
+  d_attributes["url"] = d_url;
+  d_attributes["method"] = d_method;
+
   if(!serverip.empty())
     d_serverIP = ComboAddress(serverip, 443);
+
+  if(d_serverIP)
+    d_attributes["serverIP"] = d_serverIP->toStringWithPort();
+  
   if (d_method != "GET" && d_method != "HEAD")
     throw runtime_error(fmt::format("only support HTTP HEAD & GET methods, not '{}'", d_method));
 }
@@ -81,11 +88,17 @@ CheckResult HTTPSChecker::perform()
     serverIP = fmt::format(" (server IP {})", d_serverIP->toString());
   
   try {
+    DTime dt;
+    dt.start();
     MiniCurl mc;
     MiniCurl::certinfo_t certinfo;
     // XXX also do POST
     string body = mc.getURL(d_url, d_method == "HEAD", &certinfo,
                             d_serverIP.has_value() ? &*d_serverIP : 0);
+
+    d_results.clear();
+    d_results[""]["msec"]=dt.lapUsec()/1000.0;
+    
     if(mc.d_http_code >= 400)
       return fmt::format("Content {} generated a {} status code{}", d_url, mc.d_http_code, serverIP);
     
@@ -128,7 +141,8 @@ CheckResult HTTPSChecker::perform()
       minexptime = min(expire, minexptime);
     }
     double days = (minexptime - now)/86400.0;
-    //  fmt::print("{}: first cert expires in {:.1f} days (lim {})\n", d_url, days,
+    d_results[""]["tlsMinExpDays"]=days;
+    //  fmt::print("'{}': first cert expires in {:.1f} days (lim {})\n", d_url, days,
     //             d_minCertDays);
     if(days < d_minCertDays) {
       return fmt::format("A certificate for '{}' expires in {:d} days{}",
@@ -244,23 +258,46 @@ static std::string makeICMPQuery(int family, uint16_t id, uint16_t seq)
   }
 }
 
-static void parseICMPResponse(int family, const std::string& packet, uint16_t& id, uint16_t& seq, std::string& payload)
-{
-  if(family == AF_INET) {
-    struct iphdr *ip = (iphdr*)packet.c_str();
-    struct icmphdr* icmp = (struct icmphdr*) ((char*)packet.c_str() + ip->ihl*4);
-    
-    id = icmp->un.echo.id;
-    seq = icmp->un.echo.sequence;
 
-    payload = packet.substr(ip->ihl*4 + sizeof(icmp));
-  }
-  else {
-    struct icmp6_hdr* hdr = (struct icmp6_hdr*) packet.c_str();
-    id = hdr->icmp6_dataun.icmp6_un_data16[0];
-    seq = hdr->icmp6_dataun.icmp6_un_data16[1];
-  }
+static void fillMSGHdr(struct msghdr* msgh, struct iovec* iov, char* cbuf, int buflen, char* data, size_t datalen, ComboAddress* addr)
+{
+  iov->iov_base = data;
+  iov->iov_len  = datalen;
+
+  memset(msgh, 0, sizeof(struct msghdr));
+  
+  msgh->msg_control = cbuf;
+  msgh->msg_controllen = buflen;
+  msgh->msg_name = addr;
+  msgh->msg_namelen = addr->getSocklen();
+  msgh->msg_iov  = iov;
+  msgh->msg_iovlen = 1;
+  msgh->msg_flags = 0;
 }
+
+
+/*
+recvmsg(3, 
+{msg_name={sa_family=AF_INET, sin_port=htons(0), sin_addr=inet_addr("1.1.1.1")}, msg_namelen=128 => 16, msg_iov=[{iov_base="\0\0\345\\\1\t\0\1J\31\366e\0\0\0\0\26G\4\0\0\0\0\0\20\21\22\23\24\25\26\27"..., iov_len=192}], msg_iovlen=1, 
+msg_control=[
+{cmsg_len=32, cmsg_level=SOL_SOCKET, cmsg_type=SO_TIMESTAMP_OLD, cmsg_data={tv_sec=1710627146, tv_usec=285083}}, 
+{cmsg_len=20, cmsg_level=SOL_IP, cmsg_type=IP_TTL, cmsg_data=[59]}], 
+msg_controllen=56, msg_flags=0}, 0) = 64
+*/
+
+bool HarvestTTL(struct msghdr* msgh, int* ttl) 
+{
+  struct cmsghdr *cmsg;
+  for (cmsg = CMSG_FIRSTHDR(msgh); cmsg != NULL; cmsg = CMSG_NXTHDR(msgh,cmsg)) {
+    if ((cmsg->cmsg_level == SOL_IP) && (cmsg->cmsg_type == IP_TTL) && 
+        CMSG_LEN(sizeof(*ttl)) == cmsg->cmsg_len) {
+      memcpy(ttl, CMSG_DATA(cmsg), sizeof(*ttl));
+      return true;
+    }
+  }
+  return false;
+}
+
 
 PINGChecker::PINGChecker(sol::table data) : Checker(data, 2)
 {
@@ -272,9 +309,12 @@ PINGChecker::PINGChecker(sol::table data) : Checker(data, 2)
 
 CheckResult PINGChecker::perform()
 {
+  d_results.clear();
   for(const auto& s : d_servers) {
     Socket sock(s.sin4.sin_family, SOCK_DGRAM, IPPROTO_ICMP);
     SConnect(sock, s);
+    SSetsockopt(sock, SOL_IP, IP_RECVTTL, 1);
+
     string packet = makeICMPQuery(s.sin4.sin_family, 1, 1);
     DTime dt;
     dt.start();
@@ -284,11 +324,25 @@ CheckResult PINGChecker::perform()
       return fmt::format("Timeout waiting for ping response from {}",
                          s.toString());
     }
-    uint16_t id, seq;
     string payload;
     ComboAddress server=s;
-    string resp = SRecvfrom(sock, 65535, server);
-    parseICMPResponse(s.sin4.sin_family, resp, id, seq, payload);
+
+    struct msghdr msgh;
+    struct iovec iov;
+    char cbuf[256];
+    
+    char respbuf[1500];
+    fillMSGHdr(&msgh, &iov, cbuf, sizeof(cbuf), respbuf, sizeof(respbuf), &server);
+    
+    int len = recvmsg(sock, &msgh, 0);
+    if(len < 0)
+      throw runtime_error("Receiving message: " + string(strerror(errno)));
+    int ttl = -1;
+    HarvestTTL(&msgh, &ttl);
+
+
+    d_results[s.toString()]["msec"] = dt.lapUsec()/1000.0;
+    d_results[s.toString()]["ttl"] = ttl;
     //    fmt::print("Got ping response from {} with id {} and seq {}: {} msec\n",
     //               s.toString(), id, seq, dt.lapUsec()/1000.0);
   }

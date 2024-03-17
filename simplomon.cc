@@ -10,6 +10,7 @@
 #include <thread>
 #include <mutex>
 #include "simplomon.hh"
+#include "sqlwriter.hh"
 #include "sol/sol.hpp"
 
 using namespace std;
@@ -46,10 +47,37 @@ set<pair<Checker*, std::string>> CheckResultFilter::getFilteredResults()
                            [&](const auto& r) { return r >= lim; });
       if(count >= ptr.d_minfailures)
         ret.emplace(&ptr, sp.first);
-      else
-        fmt::print("Alert '{}' not repeated enough in {} seconds, {} < {}\n",
-                   sp.first, ptr.d_failurewin, count, ptr.d_minfailures);
+      else if(count)
+        fmt::print("Alert '{}' not repeated enough in {} seconds, {} < {}, oldest alert: {}\n",
+                   sp.first, ptr.d_failurewin, count, ptr.d_minfailures,
+                   sp.second.empty() ? 0 : *sp.second.begin()
+                   );
     }
+  }
+  // and now the cleanup
+  time_t lim = now - d_maxseconds;
+  for(auto iter = d_reports.begin(); iter != d_reports.end(); ) {
+    // per Checker, map<string, set<time_t>>
+    for(auto iter2 = iter->second.begin() ; iter2 != iter->second.end();) {
+      // pair<string, set<time_t>>
+      // clean up old time_t's from the set
+      //      fmt::print("Cleanup for '{}', before: {}", iter2->first, iter2->second.size());
+      erase_if(iter2->second, [&lim](const auto& a) { return a < lim; });
+      //fmt::print(", after: {}\n", iter2->second.size());
+      
+      // if nothing is left, erase ourselves (the pair within the checker)
+      if(iter2->second.empty()) {
+        //fmt::print("Cleaning up entire message '{}'\n", iter2->first);
+        iter2 = iter->second.erase(iter2);
+      }
+      else
+        ++iter2;
+    }
+    // if the map is empty, erase the checker too
+    if(iter->second.empty())
+      iter = d_reports.erase(iter);
+    else
+      ++iter;
   }
   return ret;
 }
@@ -93,8 +121,9 @@ try
 
   startWebService();
   
-  CheckResultFilter crf;
+  CheckResultFilter crf(300);
   auto prevFiltered = crf.getFilteredResults(); // should be none
+  SQLiteWriter sqlw("stats.sqlite3");
   for(;;) {
     time_t startRun = time(nullptr);
     
@@ -103,6 +132,19 @@ try
       try {
         CheckResult cr = c->perform();
         reason = cr.d_reason;
+        if(!c->d_results.empty()) {
+          auto attr = c->d_attributes;
+          for(const auto& r: c->d_results) {
+            std::vector<std::pair<const char*, SQLiteWriter::var_t>> out;
+            for(const auto& a : attr)
+              out.push_back({a.first.c_str(), a.second});
+            out.push_back({"subject", r.first});
+            for(const auto& res : r.second)
+              out.push_back({res.first.c_str(), res.second});
+            out.push_back({"tstamp", time(nullptr)});
+            sqlw.addValue(out, c->getCheckerName());
+          }
+        }
       }
       catch(exception& e) {
         reason = "Exception caught: "+string(e.what());
@@ -120,7 +162,7 @@ try
     fmt::print("\n");
     // these are the active filtered alerts
     auto filtered = crf.getFilteredResults();
-    fmt::print("Got {} filtered results\n", filtered.size());
+    fmt::print("Got {} filtered results, ", filtered.size());
 
     giveToWebService(filtered);
     
@@ -129,7 +171,7 @@ try
                    prevFiltered.begin(), prevFiltered.end(),
                    inserter(diff, diff.begin()));
     
-    fmt::print("Got {} NEW results\n", diff.size());
+    fmt::print("got {} NEW results, ", diff.size());
     auto sendOut=[&](bool newOld) {
       for(const auto& f : diff) {
         for(const auto & n : f.first->notifiers) {
@@ -159,13 +201,14 @@ try
     set_difference(prevFiltered.begin(), prevFiltered.end(),
                    filtered.begin(), filtered.end(),
                    inserter(diff, diff.begin()));
-    fmt::print("{} alerts were resolved\n", diff.size());
+    fmt::print("{} alerts were resolved", diff.size());
     sendOut(false);
     prevFiltered = filtered;
     time_t passed = time(nullptr) - startRun;
-    if(passed < 60) {
-      int sleeptime = 60 - passed;
-      fmt::print("Sleeping {} seconds\n", sleeptime);
+    int interval = 60;
+    if(passed < interval) {
+      int sleeptime = interval - passed;
+      fmt::print(", sleeping {} seconds\n", sleeptime);
       sleep(sleeptime);
     }
   }

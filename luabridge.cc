@@ -38,7 +38,7 @@ void checkLuaTable(sol::table data,
     throw std::runtime_error(fmt::format("Missing mandatory fields '{}'", mand));
 }
 
-  
+
 class DailyChimeChecker : public Checker
 {
 public:
@@ -57,6 +57,14 @@ public:
     gmtime_r(&now, &tm);
     return fmt::format("Your daily chime for {:%Y-%m-%d}. This is not an alert.", tm);
   }
+
+  std::string getCheckerName() override { return "chime";  }
+  
+  std::string getDescription() override
+  {
+    return fmt::format("Daily chime at {}:00 UTC", d_utcHour);
+  }
+  
 private:
   int d_utcHour;
 };

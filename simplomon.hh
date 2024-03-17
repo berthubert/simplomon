@@ -5,14 +5,15 @@
 #include "sclasses.hh"
 #include "notifiers.hh"
 #include "sol/sol.hpp"
-
+#include "nlohmann/json.hpp"
 #include <fmt/chrono.h>
+#include <fmt/ranges.h>
+#include "sqlwriter.hh"
 using namespace std;
 
 extern sol::state g_lua;
 
 void initLua();
-
 
 struct CheckResult
 {
@@ -21,17 +22,19 @@ struct CheckResult
   CheckResult(const std::string& reason) : d_reason(reason) {}
   std::string d_reason;
 };
+
 extern std::vector<std::shared_ptr<Notifier>> g_notifiers;
+
 class Checker
 {
 public:
-  Checker(sol::table& data, int minFailures = -1)
+  Checker(sol::table& data, int minFailures = -1) 
   {
     if(minFailures >= 0)
       d_minfailures = minFailures;
     d_minfailures = data.get_or("minFailures", d_minfailures);
     d_failurewin =  data.get_or("failureWindow", d_failurewin);
-    d_subject = data.get_or("subject", std::string(""));
+
     data["subject"] = sol::lua_nil;
     data["minFailures"] = sol::lua_nil;
     data["failureWindow"] = sol::lua_nil;
@@ -40,6 +43,10 @@ public:
   }
   Checker(const Checker&) = delete;
   virtual CheckResult perform() = 0;
+  virtual std::string getDescription() = 0;
+  virtual std::string getCheckerName() = 0;
+  std::map<std::string, SQLiteWriter::var_t> d_attributes;
+  std::map<std::string, std::map<std::string, SQLiteWriter::var_t>> d_results;
 
   CheckResult getStatus() 
   {
@@ -55,8 +62,8 @@ public:
   int d_minfailures=1;
   int d_failurewin = 120;
 
-  std::string d_subject;
-  std::vector<std::shared_ptr<Notifier>> notifiers;  
+  std::vector<std::shared_ptr<Notifier>> notifiers;
+
 private:
   CheckResult d_status;
   std::mutex d_m;
@@ -89,7 +96,12 @@ class DNSChecker : public Checker
 public:
   DNSChecker(sol::table data);
   CheckResult perform() override;
-
+  std::string getCheckerName() override { return "dns"; }
+  std::string getDescription() override
+  {
+    return fmt::format("DNS check, server {}, qname {}, qtype {}, acceptable: {}",
+                       d_nsip.toStringWithPort(), d_qname.toString(), toString(d_qtype), d_acceptable);
+  }
 private:
   ComboAddress d_nsip;
   DNSName d_qname;
@@ -103,6 +115,12 @@ class RRSIGChecker : public Checker
 public:
   RRSIGChecker(sol::table data);
   CheckResult perform() override;
+  std::string getCheckerName() override { return "rrsig"; }
+  std::string getDescription() override
+  {
+    return fmt::format("RRSIG check, server {}, qname {}, qtype {}, minDays: {}",
+                       d_nsip.toStringWithPort(), d_qname.toString(), toString(d_qtype), d_minDays);
+  }
 
 private:
   ComboAddress d_nsip;
@@ -115,10 +133,16 @@ private:
 class DNSSOAChecker : public Checker
 {
 public:
-  DNSSOAChecker(const std::string& doain,
-             const std::set<std::string>& servers);
   DNSSOAChecker(sol::table data);
   CheckResult perform() override;
+  std::string getCheckerName() override { return "dnssoa"; }
+  std::string getDescription() override
+  {
+    std::vector<string> servers;
+    for(const auto& s : d_servers) servers.push_back(s.toStringWithPort());
+    return fmt::format("DNS SOA check, servers {}, domain {}",
+                       servers, d_domain.toString());
+  }
 
 private:
   DNSName d_domain;
@@ -133,7 +157,16 @@ public:
              const std::set<int>& ports);
   TCPPortClosedChecker(sol::table data);
   CheckResult perform() override;
+  std::string getCheckerName() override { return "tcpportclosed"; }
+  std::string getDescription() override
+  {
+    std::vector<string> servers;
+    for(const auto& s : d_servers) servers.push_back(s.toString());
+    return fmt::format("TCP closed check, servers {}, ports {}",
+                       servers, d_ports);
+  }
 
+  
 private:
   std::set<ComboAddress> d_servers;
   std::set<int> d_ports;
@@ -145,6 +178,14 @@ class PINGChecker : public Checker
 public:
   PINGChecker(sol::table data);
   CheckResult perform() override;
+  std::string getCheckerName() override { return "ping"; }
+  std::string getDescription() override
+  {
+    std::vector<string> servers;
+    for(const auto& s : d_servers) servers.push_back(s.toString());
+    return fmt::format("PING check, servers {}", servers);
+
+  }
 
 private:
   std::set<ComboAddress> d_servers;
@@ -159,6 +200,12 @@ public:
   {
   }
   CheckResult perform() override;
+  std::string getCheckerName() override { return "https"; }
+  std::string getDescription() override
+  {
+    return fmt::format("HTTPS check, URL {}, method {}",
+                       d_url, d_method); // XX needs more
+  }
 
 private:
   std::string d_url;
@@ -174,6 +221,12 @@ class HTTPRedirChecker : public Checker
 public:
   HTTPRedirChecker(sol::table data);
   CheckResult perform() override;
+  std::string getCheckerName() override { return "redir"; }
+  std::string getDescription() override
+  {
+    return fmt::format("HTTP(s) redir check, from {}, to{}",
+                       d_fromhostpart+d_frompath, d_tourl);
+  }
 
 private:
   std::string d_fromhostpart, d_frompath, d_tourl;

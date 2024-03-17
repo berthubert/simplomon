@@ -6,6 +6,7 @@
 #include "fmt/ranges.h"
 #include "fmt/chrono.h"
 #include "simplomon.hh"
+#include "support.hh"
 
 using namespace std;
 
@@ -18,6 +19,11 @@ DNSChecker::DNSChecker(sol::table data) : Checker(data, 2)
   for(const auto& a : data.get<vector<string>>("acceptable"))
     d_acceptable.insert(a);
   d_rd = data.get_or("rd", true);
+
+  d_attributes["server"] = d_nsip.toStringWithPort();
+  d_attributes["name"] = d_qname.toString();
+  d_attributes["type"] = toString(d_qtype);
+  d_attributes["rd"] = d_rd;
 }
 
 CheckResult DNSChecker::perform()
@@ -31,6 +37,8 @@ CheckResult DNSChecker::perform()
   Socket sock(d_nsip.sin4.sin_family, SOCK_DGRAM);
   SConnect(sock, d_nsip);
 
+  d_results.clear();
+  DTime dti; 
   SWrite(sock, dmw.serialize());
 
   ComboAddress server;
@@ -43,7 +51,7 @@ CheckResult DNSChecker::perform()
     
   
   string resp = SRecvfrom(sock, 65535, server);
-  
+  d_results[""]["msec"] = dti.lapUsec() / 1000.0;
   DNSMessageReader dmr(resp);
   
   DNSSection rrsection;

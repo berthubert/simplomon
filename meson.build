@@ -1,6 +1,6 @@
 project('simplomon', 'cpp', default_options : ['cpp_std=c++20'])
 
-# sqlitedep = dependency('sqlite3', version : '>3')
+sqlite_dep = dependency('sqlite3', version : '>3')
 thread_dep = dependency('threads')
 json_dep = dependency('nlohmann_json')
 fmt_dep = dependency('fmt', version: '>9', static: true)
@@ -73,11 +73,11 @@ simplesockets_dep = dependency('simplesockets', static: true)
 
 executable('simplomon', 'simplomon.cc', 'notifiers.cc', 'minicurl.cc', 'dnsmon.cc', 'record-types.cc', 'dnsmessages.cc', 'dns-storage.cc', 'netmon.cc', 'luabridge.cc', 'webservice.cc',
 	dependencies: [json_dep, fmt_dep, cpphttplib, 
-	simplesockets_dep, lua_dep, curl_dep, sqlitewriter_dep])
+	simplesockets_dep, lua_dep, curl_dep, sqlite_dep, sqlitewriter_dep])
 
 
 
 executable('testrunner', 'testrunner.cc', 'notifiers.cc', 'minicurl.cc', 'dnsmon.cc', 'record-types.cc', 'dnsmessages.cc', 'dns-storage.cc', 'netmon.cc', 'luabridge.cc',
-	dependencies: [doctest_dep, curl_dep, json_dep, fmt_dep, cpphttplib, 
+	dependencies: [doctest_dep, curl_dep, json_dep, fmt_dep, cpphttplib, sqlite_dep,
 	simplesockets_dep, lua_dep, sqlitewriter_dep])
 

@@ -10,7 +10,8 @@ RUN apt-get update -yqq && apt-get install -yqq \
     cmake \
     openssl \
     libssl-dev \
-    zlib1g-dev
+    zlib1g-dev \
+    libsqlite3-dev
 COPY . /src
 WORKDIR /src
 

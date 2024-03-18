@@ -121,4 +121,8 @@ void initLua()
                              make_shared<EmailNotifier>(data));
     return *g_notifiers.rbegin();
   });
+
+  g_lua.set_function("Logger", [&](const std::string& dbname) {
+    g_sqlw = std::make_unique<SQLiteWriter>(dbname);
+  });
 }

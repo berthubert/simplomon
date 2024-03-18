@@ -34,7 +34,9 @@ public:
       d_minfailures = minFailures;
     d_minfailures = data.get_or("minFailures", d_minfailures);
     d_failurewin =  data.get_or("failureWindow", d_failurewin);
-
+    d_mute = data.get_or("mute", false);
+    data["mute"] = sol::lua_nil;
+    
     data["subject"] = sol::lua_nil;
     data["minFailures"] = sol::lua_nil;
     data["failureWindow"] = sol::lua_nil;
@@ -63,7 +65,7 @@ public:
   int d_failurewin = 120;
 
   std::vector<std::shared_ptr<Notifier>> notifiers;
-
+  bool d_mute = false;
 private:
   CheckResult d_status;
   std::mutex d_m;
@@ -104,6 +106,7 @@ public:
   }
 private:
   ComboAddress d_nsip;
+  std::optional<ComboAddress> d_localIP;
   DNSName d_qname;
   DNSType d_qtype;
   std::set<std::string> d_acceptable;
@@ -189,6 +192,7 @@ public:
 
 private:
   std::set<ComboAddress> d_servers;
+  std::optional<ComboAddress> d_localIP;
 };
 
 
@@ -212,9 +216,29 @@ private:
   int d_maxAgeMinutes = 0;
   unsigned int d_minBytes = 0;
   unsigned int d_minCertDays = 14;
-  std::optional<ComboAddress> d_serverIP;
+  std::optional<ComboAddress> d_serverIP, d_localIP;
+  std::vector<ComboAddress> d_dns;
   std::string d_method;
 };
+
+
+class PrometheusChecker : public Checker
+{
+public:
+  PrometheusChecker(sol::table data);
+  CheckResult perform() override;
+  std::string getCheckerName() override { return "prometheus"; }
+  std::string getDescription() override
+  {
+    return fmt::format("Prometheus check, IP {}",
+                       d_serverIP.toStringWithPort());
+  }
+
+private:
+  ComboAddress d_serverIP;
+
+};
+
 
 class HTTPRedirChecker : public Checker
 {
@@ -233,10 +257,13 @@ private:
 };
 
 extern std::vector<std::unique_ptr<Checker>> g_checkers;
-
+extern std::unique_ptr<SQLiteWriter> g_sqlw;
 void checkLuaTable(sol::table data,
                    const std::set<std::string>& mandatory,
                    const std::set<std::string>& opt = std::set<std::string>());
 
 void startWebService();
 void giveToWebService(const std::set<pair<Checker*, std::string>>&);
+std::vector<ComboAddress> DNSResolveAt(const DNSName& name, const DNSType& type,
+                                       const std::vector<ComboAddress>& servers,
+                                       std::optional<ComboAddress> local = std::optional<ComboAddress>());

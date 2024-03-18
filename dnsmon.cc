@@ -10,15 +10,88 @@
 
 using namespace std;
 
+static DNSMessageReader sendQuery(const vector<ComboAddress>& resolvers, DNSName dn, DNSType dt, std::optional<ComboAddress> local = std::optional<ComboAddress>())
+{
+  DNSMessageWriter dmw(dn, dt);
+  
+  dmw.dh.rd = true;
+  dmw.randomizeID();
+  dmw.setEDNS(4000, false);
+  for(int n=0; n < 3; ++n) {
+    for(const auto& server: resolvers) {
+      try {
+	Socket sock(server.sin4.sin_family, SOCK_DGRAM);
+        if(local) {
+          local->setPort(0);
+          SBind(sock, *local);
+        }
+	SetNonBlocking(sock, true);
+	SConnect(sock, server);
+	SWrite(sock, dmw.serialize());
+	double timeout=1.5;
+	if(!waitForData(sock, &timeout)) {
+	  cout<<"Timeout asking "<<server.toString()<<" for "<<dn<<" "<<dt<<", trying again"<<endl;
+	  continue;
+	}
+	
+	ComboAddress rem=server;
+	string resp = SRecvfrom(sock, 65535, rem);
+	// these will be identical because of the connect above
+	DNSMessageReader dmr(resp);
+	if((RCode)dmr.dh.rcode != RCode::Noerror && (RCode)dmr.dh.rcode != RCode::Nxdomain ) {
+	  cout<<"Server gave us an inconclusive RCode ("<<(RCode)dmr.dh.rcode<<"), ignoring this response"<<endl;
+	  continue;
+	}
+	
+	if(dmr.dh.tc) {
+          throw std::runtime_error("Needed to do TCP DNS which we can't");
+	  // shit
+	}
+	else
+	  return dmr;
+      }
+      catch(...){} 
+    }
+  }
+  throw std::runtime_error("No DNS server could be reached or responded");
+}
+
+std::vector<ComboAddress> DNSResolveAt(const DNSName& name, const DNSType& type,
+                                       const std::vector<ComboAddress>& servers,
+                                       std::optional<ComboAddress> local)
+{
+  DNSMessageReader dmr = sendQuery(servers, name, type, local);
+  DNSName dn;
+  DNSType dt;
+  dmr.getQuestion(dn, dt);
+  vector<ComboAddress> ret;  
+  std::unique_ptr<RRGen> rr;
+  DNSSection rrsection;
+  uint32_t ttl;
+  while(dmr.getRR(rrsection, dn, dt, ttl, rr)) {
+    // XXX should support IPv6 as well!
+    if(rrsection == DNSSection::Answer && dt == type && type == DNSType::A) {
+      ret.push_back(dynamic_cast<AGen*>(rr.get())->getIP());
+    }
+  }
+  return ret;
+}
+
+
 DNSChecker::DNSChecker(sol::table data) : Checker(data, 2)
 {
-  checkLuaTable(data, {"server", "name", "type", "acceptable"}, {"rd"});
+  checkLuaTable(data, {"server", "name", "type"}, {"rd", "acceptable", "localIP"});
   d_nsip = ComboAddress(data.get<string>("server"), 53);
   d_qname = makeDNSName(data.get<string>("name"));
   d_qtype = makeDNSType(data.get<string>("type").c_str());
-  for(const auto& a : data.get<vector<string>>("acceptable"))
+  for(const auto& a : data.get_or("acceptable", vector<string>()))
     d_acceptable.insert(a);
   d_rd = data.get_or("rd", true);
+  string localip= data.get_or("localIP", string(""));
+  if(!localip.empty()) {
+    d_localIP = ComboAddress(localip, 0);
+    d_attributes["localIP"] = d_localIP->toString();
+  }
 
   d_attributes["server"] = d_nsip.toStringWithPort();
   d_attributes["name"] = d_qname.toString();
@@ -35,6 +108,10 @@ CheckResult DNSChecker::perform()
   dmw.setEDNS(4000, false);
   
   Socket sock(d_nsip.sin4.sin_family, SOCK_DGRAM);
+  if(d_localIP) {
+    SBind(sock, *d_localIP);
+  }
+
   SConnect(sock, d_nsip);
 
   d_results.clear();
@@ -71,24 +148,33 @@ CheckResult DNSChecker::perform()
   std::unique_ptr<RRGen> rr;
 
   int matches = 0;
+  vector<string> finals;
   while(dmr.getRR(rrsection, dn, dt, ttl, rr)) {
     if(rrsection == DNSSection::Answer && dt == d_qtype) {
       //  cout << rrsection<<" "<<dn<< " IN " << dt << " " << ttl << " " <<rr->toString()<<endl;
-      if(dt == DNSType::NS) {
-        set<DNSName> acc;
-        for(const auto& a : d_acceptable)
-          acc.insert(makeDNSName(a));
-        if(!acc.count(dynamic_cast<NSGen*>(rr.get())->d_name)) {
+      finals.push_back(dn.toString()+" "+rr->toString());
+      if(d_acceptable.empty())
+        matches++;
+      else {
+        if(dt == DNSType::NS) {
+          set<DNSName> acc;
+          for(const auto& a : d_acceptable)
+            acc.insert(makeDNSName(a));
+          if(!acc.count(dynamic_cast<NSGen*>(rr.get())->d_name)) {
+            return fmt::format("Unacceptable DNS answer {} for question {} from {}. Acceptable: {}", rr->toString(), d_qname.toString(), d_nsip.toStringWithPort(), d_acceptable);
+          }
+          else matches++;
+        }
+        else if(!d_acceptable.count(rr->toString())) {
           return fmt::format("Unacceptable DNS answer {} for question {} from {}. Acceptable: {}", rr->toString(), d_qname.toString(), d_nsip.toStringWithPort(), d_acceptable);
         }
         else matches++;
       }
-      else if(!d_acceptable.count(rr->toString())) {
-        return fmt::format("Unacceptable DNS answer {} for question {} from {}. Acceptable: {}", rr->toString(), d_qname.toString(), d_nsip.toStringWithPort(), d_acceptable);
-      }
-      else matches++; 
     }
   }
+
+  d_results[""]["finals"] = fmt::format("{}", finals);
+  
   if(matches) {
     return "";
   }
@@ -181,6 +267,11 @@ RRSIGChecker::RRSIGChecker(sol::table data) : Checker(data, 2)
   d_qname = makeDNSName(data.get<string>("name"));
   d_qtype = makeDNSType(data.get_or("type", string("SOA")).c_str());
   d_minDays = data.get_or("minDays", 7);
+
+  d_attributes["server"] = d_nsip.toStringWithPort();
+  d_attributes["name"] = d_qname.toString();
+  d_attributes["type"] = toString(d_qtype);
+
 }
 
 CheckResult RRSIGChecker::perform()

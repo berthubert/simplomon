@@ -18,6 +18,8 @@ using namespace std;
 vector<std::unique_ptr<Checker>> g_checkers;
 vector<std::shared_ptr<Notifier>> g_notifiers;
 
+std::unique_ptr<SQLiteWriter> g_sqlw;
+
 /* the idea
    Every checker can generate multiple alerts.
    However, some alerts should only be reported if they persist for a bit
@@ -123,7 +125,7 @@ try
   
   CheckResultFilter crf(300);
   auto prevFiltered = crf.getFilteredResults(); // should be none
-  SQLiteWriter sqlw("stats.sqlite3");
+  
   for(;;) {
     time_t startRun = time(nullptr);
     
@@ -142,7 +144,8 @@ try
             for(const auto& res : r.second)
               out.push_back({res.first.c_str(), res.second});
             out.push_back({"tstamp", time(nullptr)});
-            sqlw.addValue(out, c->getCheckerName());
+            if(g_sqlw)
+              g_sqlw->addValue(out, c->getCheckerName());
           }
         }
       }
@@ -154,8 +157,18 @@ try
       }
 
       if(!reason.empty()) {
-        crf.reportResult(c.get(), reason);
-        fmt::print("\nreporting: '{}'", reason);
+        if(!c->d_mute)
+          crf.reportResult(c.get(), reason);
+        if(g_sqlw) {
+          auto attr = c->d_attributes;
+          std::vector<std::pair<const char*, SQLiteWriter::var_t>> out;
+          for(const auto& a : attr)
+            out.push_back({a.first.c_str(), a.second});
+          out.push_back({"checker", c->getCheckerName()});
+          out.push_back({"reason", reason});
+          out.push_back({"tstamp", time(nullptr)});
+          g_sqlw->addValue(out, "reports");
+        }
       }
       fmt::print("."); cout.flush();
     }
@@ -165,7 +178,7 @@ try
     fmt::print("Got {} filtered results, ", filtered.size());
 
     giveToWebService(filtered);
-    
+
     decltype(filtered) diff;
     set_difference(filtered.begin(), filtered.end(),
                    prevFiltered.begin(), prevFiltered.end(),
@@ -195,13 +208,13 @@ try
     };
 
     sendOut(true);
-      
 
     diff.clear();
     set_difference(prevFiltered.begin(), prevFiltered.end(),
                    filtered.begin(), filtered.end(),
                    inserter(diff, diff.begin()));
     fmt::print("{} alerts were resolved", diff.size());
+    
     sendOut(false);
     prevFiltered = filtered;
     time_t passed = time(nullptr) - startRun;

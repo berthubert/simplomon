@@ -58,5 +58,6 @@ private:
   void setupURL(const std::string& str, const ComboAddress* rem=0, const ComboAddress* src=0);
   void setHeaders(const MiniCurlHeaders& headers);
   void clearHeaders();
-
 };
+
+std::string extractHostFromURL(const std::string& url);

@@ -58,24 +58,37 @@ CheckResult TCPPortClosedChecker::perform()
   return "";
 }
 
+
+// XXX needs switch to select IPv4 or IPv6 or happy eyeballs?
 HTTPSChecker::HTTPSChecker(sol::table data) : Checker(data)
 {
-  checkLuaTable(data, {"url"}, {"maxAgeMinutes", "minBytes", "minCertDays", "serverIP", "method"});
+  checkLuaTable(data, {"url"}, {"maxAgeMinutes", "minBytes", "minCertDays", "serverIP", "method", "localIP", "dns"});
   d_url = data.get<string>("url");
   d_maxAgeMinutes =data.get_or("maxAgeMinutes", 0);
   d_minCertDays =  data.get_or("minCertDays", 14);
   string serverip= data.get_or("serverIP", string(""));
+  string localip= data.get_or("localIP", string(""));
   d_minBytes =     data.get_or("minBytes", 0);
   d_method =       data.get_or("method", string("GET"));
+  vector<string> dns = data.get_or("dns", vector<string>());
 
   d_attributes["url"] = d_url;
   d_attributes["method"] = d_method;
 
-  if(!serverip.empty())
+  if(!serverip.empty()) {
     d_serverIP = ComboAddress(serverip, 443);
-
-  if(d_serverIP)
     d_attributes["serverIP"] = d_serverIP->toStringWithPort();
+  }
+  if(!localip.empty()) {
+    d_localIP = ComboAddress(localip);
+    d_attributes["localIP"] = d_localIP->toString();
+  }
+
+  if(!dns.empty()) {
+    for(const auto& d : dns)
+      d_dns.push_back(ComboAddress(d, 53));
+    d_attributes["dns"] = fmt::format("{}", dns);
+  }
   
   if (d_method != "GET" && d_method != "HEAD")
     throw runtime_error(fmt::format("only support HTTP HEAD & GET methods, not '{}'", d_method));
@@ -83,20 +96,45 @@ HTTPSChecker::HTTPSChecker(sol::table data) : Checker(data)
 
 CheckResult HTTPSChecker::perform()
 {
+  d_results.clear();
   string serverIP;
-  if(d_serverIP.has_value())
-    serverIP = fmt::format(" (server IP {})", d_serverIP->toString());
+  ComboAddress activeServerIP;
+  activeServerIP.sin4.sin_family = 0; // "unset"
   
+  if(d_serverIP.has_value()) {
+    serverIP = fmt::format(" (server IP {})", d_serverIP->toString());
+    activeServerIP = *d_serverIP;
+  }
+  else if(!d_dns.empty()) {
+    vector<string> tofmt;
+    for(const auto& d : d_dns)
+      tofmt.push_back(d.toString());
+
+    DNSName qname = makeDNSName(extractHostFromURL(d_url));
+    //    fmt::print("Going to do DNS lookup for {} over at {} using source {}\n",
+    //               qname.toString(), tofmt, d_localIP.has_value() ? d_localIP->toString() : "default");
+    std::vector<ComboAddress> r= DNSResolveAt(qname, DNSType::A, d_dns, d_localIP); 
+    activeServerIP = r.at(0);
+    d_results[""]["server-ip"] = activeServerIP.toString();
+    serverIP = fmt::format(" (server IP {} from DNS {})", activeServerIP.toString(), tofmt);
+    //    fmt::print("Got: {}\n", serverIP);
+  }
+  
+  if(d_localIP.has_value()) {
+    serverIP += fmt::format(" (local IP {})", d_localIP->toString());
+  }
   try {
     DTime dt;
     dt.start();
     MiniCurl mc;
     MiniCurl::certinfo_t certinfo;
     // XXX also do POST
-    string body = mc.getURL(d_url, d_method == "HEAD", &certinfo,
-                            d_serverIP.has_value() ? &*d_serverIP : 0);
 
-    d_results.clear();
+    string body = mc.getURL(d_url, d_method == "HEAD", &certinfo,
+                            activeServerIP.sin4.sin_family ? &activeServerIP : 0,
+                            d_localIP.has_value() ? &*d_localIP : 0);
+
+
     d_results[""]["msec"]=dt.lapUsec()/1000.0;
     
     if(mc.d_http_code >= 400)
@@ -301,10 +339,16 @@ bool HarvestTTL(struct msghdr* msgh, int* ttl)
 
 PINGChecker::PINGChecker(sol::table data) : Checker(data, 2)
 {
-  checkLuaTable(data, {"servers"});
+  checkLuaTable(data, {"servers"}, {"localIP"});
   for(const auto& s: data.get<vector<string>>("servers")) {
     d_servers.insert(ComboAddress(s));
   }
+  string localip= data.get_or("localIP", string(""));
+  if(!localip.empty()) {
+    d_localIP = ComboAddress(localip);
+    d_attributes["localIP"] = d_localIP->toString();
+  }
+
 }
 
 CheckResult PINGChecker::perform()
@@ -312,6 +356,10 @@ CheckResult PINGChecker::perform()
   d_results.clear();
   for(const auto& s : d_servers) {
     Socket sock(s.sin4.sin_family, SOCK_DGRAM, IPPROTO_ICMP);
+    if(d_localIP) {
+      SBind(sock, *d_localIP);
+    }
+
     SConnect(sock, s);
     SSetsockopt(sock, SOL_IP, IP_RECVTTL, 1);
 

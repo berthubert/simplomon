@@ -65,7 +65,7 @@ size_t MiniCurl::write_callback(char *ptr, size_t size, size_t nmemb, void *user
 
 using namespace std;
 
-static string extractHostFromURL(const std::string& url)
+string extractHostFromURL(const std::string& url)
 {
   auto pos = url.find("://");
   if(pos == string::npos)
@@ -104,9 +104,6 @@ void MiniCurl::setupURL(const std::string& str, const ComboAddress* rem, const C
 
     curl_easy_setopt(d_curl, CURLOPT_RESOLVE, hostlist);
   }
-  if(src) {
-    curl_easy_setopt(d_curl, CURLOPT_INTERFACE, src->toString().c_str());
-  }
   //  curl_easy_setopt(d_curl, CURLOPT_FOLLOWLOCATION, true);
   /* only allow HTTP and HTTPS */
   curl_easy_setopt(d_curl, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
@@ -120,6 +117,11 @@ void MiniCurl::setupURL(const std::string& str, const ComboAddress* rem, const C
   curl_easy_setopt(d_curl, CURLOPT_TIMEOUT, 10L);
   curl_easy_setopt(d_curl, CURLOPT_CERTINFO, 1L);
   curl_easy_setopt(d_curl, CURLOPT_FILETIME, 1L);
+  if(src) {
+    int ret = curl_easy_setopt(d_curl, CURLOPT_INTERFACE, src->toString().c_str());
+    //    fmt::print("Setting interface to '{}', ret {}\n", src->toString().c_str(),
+    //         ret);
+  }
 
   clearHeaders();
   d_data.clear();
@@ -133,7 +135,7 @@ std::string MiniCurl::getURL(const std::string& str, const bool nobody, MiniCurl
   auto res = curl_easy_perform(d_curl);
 
   if(res != CURLE_OK)  {
-    throw std::runtime_error("Unable to retrieve URL "+str+ ": "+string(curl_easy_strerror(res)));
+    throw std::runtime_error("Unable to retrieve URL '"+str+ "': "+string(curl_easy_strerror(res)));
   }
 
   d_filetime=-1;

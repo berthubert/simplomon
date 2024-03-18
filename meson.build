@@ -11,7 +11,7 @@ curl_dep = dependency(
     allow_fallback: true,
     default_options: [
         'tests=disabled',
-        'bindlocal=disabled',
+        'bindlocal=enabled',
         'dict=disabled',
         'shuffle-dns=disabled',
         'doh=disabled',

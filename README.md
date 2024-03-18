@@ -50,7 +50,7 @@ Here are some sample checkers:
 ```lua
 dailyChime{utcHour=10} -- 10AM UTC chime confirms monitoring works
 
-ping{servers={"9.9.9.9"}} -- does our network even work
+ping{servers={"9.9.9.9", "8.8.8.8"}} -- does our network even work
 
 -- the following checks certificates, and whines if any expire within
 -- two weeks
@@ -65,6 +65,11 @@ https{url="https://berthub.eu/nlelec/dutch-stack.svg", maxAgeMinutes=20}
 -- check if a specific server IP is serving correctly
 https{url="https://berthub.eu", serverIP="86.82.68.237"}
 https{url="https://berthub.eu", serverIP="2001:41f0:782d::2"}
+
+-- check if a URL works correctly if resolved via specific nameserver
+https{url="https://berthub.eu", dns={"8.8.8.8"}}
+-- or from a specific source IP
+https{url="https://berthub.eu", dns={"9.9.9.9"], localIP="10.0.0.9"}
 
 -- Check if SOA records are identical
 nameservers={"100.25.31.6", "86.82.68.237", "217.100.190.174"}
@@ -107,6 +112,13 @@ supports two endpoints:
    environments happy
  * /state: creates a JSON object of all active alerts
 
+## Datalogger
+If you add `Logger("stats.sqlite3")`, simplomon will populate a SQLite
+database with lots of interesting metadata, one table per checker kind. 
+
+In addition, all alert reports will be logged in the 'reports' table, even
+if they did not lead to notifications.
+
 ## Todo
 
  * SMTP checker
@@ -116,7 +128,6 @@ supports two endpoints:
  * HTTP *POST* support
  * HTTP JSON check
  * Build simple status page based on our JSON output
- * Enable checks to publish metadata
  * Performance tests ("average response time past hour > 100ms")
  * Enable Check config statements to create multiple kinds of alerts
 

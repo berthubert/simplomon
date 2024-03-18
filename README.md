@@ -114,7 +114,8 @@ supports two endpoints:
 
 ## Datalogger
 If you add `Logger("stats.sqlite3")`, simplomon will populate a SQLite
-database with lots of interesting metadata, one table per checker kind. 
+database (in the file './stats.sqlite3') with lots of interesting metadata,
+one table per checker kind.
 
 In addition, all alert reports will be logged in the 'reports' table, even
 if they did not lead to notifications.

@@ -18,18 +18,18 @@ using namespace std;
 vector<std::unique_ptr<Checker>> g_checkers;
 vector<std::shared_ptr<Notifier>> g_notifiers;
 
-/* the idea
+/* The idea:
    Every checker can generate multiple alerts.
-   However, some alerts should only be reported if they persist for a bit
-   This means we should only pass on an alert if we've seen it for a while now
-   Alerts can't generate persistent identifiers (id) for the same alert 
-   So we must use the text representation and the checker should keep that constant
+   However, some alerts should only be reported if they persist for a bit.
+   This means we should only pass on an alert if we've seen it for a while now.
+   Alerts can't generate persistent identifiers (id) for the same alert.
+   So we must use the text representation and the checker should keep that constant.
 
-   our throtle then consists of a set of strings and when they were reported per checker
-   If a checker stops reporting that string, that is fine
+   Our throttle then consists of a set of strings and when they were reported per checker.
+   If a checker stops reporting that string, that is fine.
 
-   we ask the throttle: give me a list of active alerts
-   We never talk to the checker directly
+   We ask the throttle: give me a list of active alerts.
+   We never talk to the checker directly.
 */
 
 set<pair<Checker*, std::string>> CheckResultFilter::getFilteredResults()

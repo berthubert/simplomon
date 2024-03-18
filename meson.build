@@ -77,7 +77,7 @@ executable('simplomon', 'simplomon.cc', 'notifiers.cc', 'minicurl.cc', 'dnsmon.c
 
 
 
-#executable('testrunner', 'testrunner.cc', 'notifiers.cc', 'minicurl.cc', 'dnsmon.cc', 'record-types.cc', 'dnsmessages.cc', 'dns-storage.cc', 'netmon.cc', 'luabridge.cc',
-#	dependencies: [doctest_dep, curl_dep, json_dep, fmt_dep, cpphttplib, 
-#	simplesockets_dep, lua_dep])
+executable('testrunner', 'testrunner.cc', 'notifiers.cc', 'minicurl.cc', 'dnsmon.cc', 'record-types.cc', 'dnsmessages.cc', 'dns-storage.cc', 'netmon.cc', 'luabridge.cc',
+	dependencies: [doctest_dep, curl_dep, json_dep, fmt_dep, cpphttplib, 
+	simplesockets_dep, lua_dep, sqlitewriter_dep])
 

@@ -113,9 +113,11 @@ CheckResult HTTPSChecker::perform()
     DNSName qname = makeDNSName(extractHostFromURL(d_url));
     //    fmt::print("Going to do DNS lookup for {} over at {} using source {}\n",
     //               qname.toString(), tofmt, d_localIP.has_value() ? d_localIP->toString() : "default");
+    DTime dt;
     std::vector<ComboAddress> r= DNSResolveAt(qname, DNSType::A, d_dns, d_localIP); 
     activeServerIP = r.at(0);
     d_results[""]["server-ip"] = activeServerIP.toString();
+    d_results[""]["dns-msec"] = dt.lapUsec() / 1000.0;
     serverIP = fmt::format(" (server IP {} from DNS {})", activeServerIP.toString(), tofmt);
     //    fmt::print("Got: {}\n", serverIP);
   }

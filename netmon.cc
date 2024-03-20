@@ -27,6 +27,8 @@ TCPPortClosedChecker::TCPPortClosedChecker(sol::table data) : Checker(data)
 
 CheckResult TCPPortClosedChecker::perform()
 {
+  CheckResult cr;
+  
   for(const auto& s : d_servers) {
     for(const auto& p : d_ports) {
       int ret=-1;
@@ -51,11 +53,11 @@ CheckResult TCPPortClosedChecker::perform()
         continue;
       }
       if(ret >= 0) {
-        return fmt::format("Was able to connect to TCP {} which should be closed", rem.toStringWithPort());
+        cr.d_reasons.push_back(fmt::format("Was able to connect to TCP {} which should be closed", rem.toStringWithPort()));
       }
     }
   }
-  return "";
+  return cr;
 }
 
 

@@ -104,13 +104,17 @@ Save this as 'simplomon.conf' and start './simplomon' and you should be in
 business.
 
 ## Webserver
+If you run `Webserver{address="127.0.0.1:8080"}`, simplomon will launch a
+webserver. If you run Simplomon inside a container, you'll probably have to
+use `0.0.0.0:8080` for things to work.
 
-BEWARE: Simplomon launches a webserver on port 0.0.0.0:8080 which currently
-supports two endpoints:
+This server supports the following three endpoints:
 
  * /health: generates {"health":"ok"} which appears to make some Docker
    environments happy
  * /state: creates a JSON object of all active alerts
+ * /checker-states: a largish JSON object describing the settings of all checkers & the
+ results of the measurements they are doing
 
 ## Datalogger
 If you add `Logger("stats.sqlite3")`, simplomon will populate a SQLite
@@ -135,7 +139,11 @@ if they did not lead to notifications.
 ## Docker
 There is [an image on the Docker hub](https://hub.docker.com/repository/docker/berthubert/simplomon/general) which you can pull (berthubert/simplomon).
 
-The image will read its configuration file from the HTTPS URL supplied in the SIMPLOMON_CONFIG_URL environment variable.
+The image will read its configuration file from the HTTPS URL supplied in the SIMPLOMON_CONFIG_URL environment variable. 
+
+Do make sure to set `Webserver{address="0.0.0.0:8080"}` in that
+configuration file, as otherwise your Docker environment may not recognize
+that simplomon is running.
 
 To build the image yourself, do:
 

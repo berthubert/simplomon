@@ -39,12 +39,14 @@ static DNSMessageReader sendQuery(const vector<ComboAddress>& resolvers, DNSName
 	// these will be identical because of the connect above
 	DNSMessageReader dmr(resp);
 	if((RCode)dmr.dh.rcode != RCode::Noerror && (RCode)dmr.dh.rcode != RCode::Nxdomain ) {
-	  cout<<"Server gave us an inconclusive RCode ("<<(RCode)dmr.dh.rcode<<"), ignoring this response"<<endl;
+          //	  cout<<"Server gave us an inconclusive RCode ("<<(RCode)dmr.dh.rcode<<"), ignoring this response"<<endl;
 	  continue;
 	}
 	
 	if(dmr.dh.tc) {
-          throw std::runtime_error("Needed to do TCP DNS which we can't");
+          throw std::runtime_error(fmt::format("Needed to do TCP DNS for {}|{} which we can't",
+                                               dn.toString(), toString(dt))
+                                   );
 	  // shit
 	}
 	else
@@ -53,7 +55,9 @@ static DNSMessageReader sendQuery(const vector<ComboAddress>& resolvers, DNSName
       catch(...){} 
     }
   }
-  throw std::runtime_error("No DNS server could be reached or responded");
+  throw std::runtime_error(fmt::format("No DNS server could be reached or responded trying to resolve '{}|{}'",
+                                       dn.toString(), toString(dt))
+                                       );
 }
 
 std::vector<ComboAddress> DNSResolveAt(const DNSName& name, const DNSType& type,

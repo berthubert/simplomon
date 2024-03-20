@@ -102,7 +102,7 @@ CheckResult HTTPSChecker::perform()
   string serverIP;
   ComboAddress activeServerIP;
   activeServerIP.sin4.sin_family = 0; // "unset"
-  
+  double dnsMsec = 0;
   if(d_serverIP.has_value()) {
     serverIP = fmt::format(" (server IP {})", d_serverIP->toString());
     activeServerIP = *d_serverIP;
@@ -119,7 +119,9 @@ CheckResult HTTPSChecker::perform()
     std::vector<ComboAddress> r= DNSResolveAt(qname, DNSType::A, d_dns, d_localIP); 
     activeServerIP = r.at(0);
     d_results[""]["server-ip"] = activeServerIP.toString();
-    d_results[""]["dns-msec"] = dt.lapUsec() / 1000.0;
+    dnsMsec = dt.lapUsec() / 1000.0;
+    d_results[""]["dns-msec"] = dnsMsec;
+
     serverIP = fmt::format(" (server IP {} from DNS {})", activeServerIP.toString(), tofmt);
     //    fmt::print("Got: {}\n", serverIP);
   }
@@ -139,7 +141,10 @@ CheckResult HTTPSChecker::perform()
                             d_localIP.has_value() ? &*d_localIP : 0);
 
 
-    d_results[""]["msec"]=dt.lapUsec()/1000.0;
+    double httpMsec = dt.lapUsec()/1000.0;
+    d_results[""]["http-msec"]= httpMsec;
+    d_results[""]["msec"]= dnsMsec + httpMsec;
+    d_results[""]["http-code"] = mc.d_http_code;
     
     if(mc.d_http_code >= 400)
       return fmt::format("Content {} generated a {} status code{}", d_url, mc.d_http_code, serverIP);

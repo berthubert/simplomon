@@ -18,9 +18,9 @@ void initLua();
 struct CheckResult
 {
   CheckResult() {}
-  CheckResult(const char* reason) : d_reason(reason) {}
-  CheckResult(const std::string& reason) : d_reason(reason) {}
-  std::string d_reason;
+  CheckResult(const char* reason) : d_reasons({reason}) {}
+  CheckResult(const std::string& reason) : d_reasons({reason}) {}
+  std::vector<std::string> d_reasons;
 };
 
 extern std::vector<std::shared_ptr<Notifier>> g_notifiers;

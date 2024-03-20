@@ -130,10 +130,10 @@ try
     time_t startRun = time(nullptr);
     
     for(auto &c : g_checkers) {
-      string reason;
+      vector<string> reasons;
       try {
         CheckResult cr = c->perform();
-        reason = cr.d_reason;
+        reasons = cr.d_reasons;
         if(!c->d_results.empty()) {
           auto attr = c->d_attributes;
           for(const auto& r: c->d_results) {
@@ -150,13 +150,15 @@ try
         }
       }
       catch(exception& e) {
-        reason = "Exception caught: "+string(e.what());
+        reasons = {"Exception caught: "+string(e.what())};
       }
       catch(...) {
-        reason = "Unknown exception caught";
+        reasons = {"Unknown exception caught"};
       }
 
-      if(!reason.empty()) {
+      for(const auto& reason : reasons) {
+        if(reason.empty())
+          continue;
         if(!c->d_mute)
           crf.reportResult(c.get(), reason);
         if(g_sqlw) {

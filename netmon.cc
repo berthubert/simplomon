@@ -356,6 +356,7 @@ PINGChecker::PINGChecker(sol::table data) : Checker(data, 2)
 CheckResult PINGChecker::perform()
 {
   d_results.clear();
+  CheckResult ret;
   for(const auto& s : d_servers) {
     Socket sock(s.sin4.sin_family, SOCK_DGRAM, IPPROTO_ICMP);
     if(d_localIP) {
@@ -371,8 +372,9 @@ CheckResult PINGChecker::perform()
     SWrite(sock, packet);
     double timeo=1.0;
     if(!waitForData(sock, &timeo)) { // timeout
-      return fmt::format("Timeout waiting for ping response from {}",
-                         s.toString());
+      ret.d_reasons.push_back(fmt::format("Timeout waiting for ping response from {}",
+                                        s.toString()));
+      continue;
     }
     string payload;
     ComboAddress server=s;
@@ -385,8 +387,10 @@ CheckResult PINGChecker::perform()
     fillMSGHdr(&msgh, &iov, cbuf, sizeof(cbuf), respbuf, sizeof(respbuf), &server);
     
     int len = recvmsg(sock, &msgh, 0);
-    if(len < 0)
-      throw runtime_error("Receiving message: " + string(strerror(errno)));
+    if(len < 0) {
+      ret.d_reasons.push_back("Receiving ping response from "+s.toString()+": " + string(strerror(errno)));
+      continue;
+    }
     int ttl = -1;
     HarvestTTL(&msgh, &ttl);
 
@@ -396,5 +400,5 @@ CheckResult PINGChecker::perform()
     //    fmt::print("Got ping response from {} with id {} and seq {}: {} msec\n",
     //               s.toString(), id, seq, dt.lapUsec()/1000.0);
   }
-  return "";
+  return ret;
 }

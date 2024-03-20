@@ -5,6 +5,7 @@
 
 static std::mutex s_lock;
 static nlohmann::json s_state;
+static nlohmann::json s_checkerstates;
 void giveToWebService(const std::set<pair<Checker*, std::string>>& cs)
 {
   std::lock_guard<mutex> m(s_lock);
@@ -17,15 +18,57 @@ void giveToWebService(const std::set<pair<Checker*, std::string>>& cs)
   s_state["alerts"] = arr;
 }
 
-static void webserverThread(std::unique_ptr<httplib::Server> svr)
+
+static nlohmann::json toJson(const SQLiteWriter::var_t& var)
 {
-  if(svr->listen("0.0.0.0", 8080)) {
+  nlohmann::json j;
+  std::visit([&j](auto&& arg) {
+    using T = std::decay_t<decltype(arg)>;
+    if constexpr (std::is_same_v<T, nullptr_t>)
+                   return;
+    else  {
+      j = arg;
+    }
+    
+  }, var);
+  return j;
+  
+}
+
+void updateWebService()
+{
+  std::lock_guard<mutex> m(s_lock);
+  s_checkerstates = nlohmann::json::object();
+
+  for(auto &c : g_checkers) {
+    nlohmann::json cstate;
+    
+    auto attr = c->d_attributes;
+    nlohmann::json jattr, jresults;
+    for(const auto& a : c->d_attributes)
+      jattr[a.first] = toJson(a.second);
+
+    for(const auto& r: c->d_results) {
+      for(const auto& res : r.second)
+        jresults[r.first][res.first] = toJson(res.second);
+    }
+    cstate["attr"] = jattr;
+    cstate["results"] = jresults;
+    
+    s_checkerstates[c->getCheckerName()].push_back(cstate);
+  }
+}
+
+static void webserverThread(std::unique_ptr<httplib::Server> svr, string addr)
+{
+  ComboAddress ca(addr, 8080);
+  if(svr->listen(ca.toString(), ntohs(ca.sin4.sin_port))) {
     cout<<"Error launching server: "<<strerror(errno)<<endl;
     exit(EXIT_FAILURE);
   }
 }
 
-void startWebService()
+void startWebService(sol::table data)
 {
   auto svr = make_unique<httplib::Server>();
   
@@ -45,10 +88,14 @@ void startWebService()
     std::lock_guard<mutex> m(s_lock);
     res.set_content(s_state.dump(), "application/json");
   });
-  
-  std::thread t(webserverThread, std::move(svr));
-  t.detach();
+
+  svr->Get("/checker-states/?", [](const auto& req, auto& res) {
+    std::lock_guard<mutex> m(s_lock);
+    res.set_content(s_checkerstates.dump(), "application/json");
+  });
 
   
+  std::thread t(webserverThread, std::move(svr), data.get_or("address", string("0.0.0.0:8080")));
+  t.detach();
 }
 

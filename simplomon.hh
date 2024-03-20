@@ -256,14 +256,33 @@ private:
   std::string d_fromhostpart, d_frompath, d_tourl;
 };
 
+class SMTPChecker : public Checker
+{
+public:
+  SMTPChecker(sol::table data);
+  CheckResult perform() override;
+  std::string getCheckerName() override { return "smtp"; }
+  std::string getDescription() override
+  {
+    return fmt::format("SMTP check for {}",
+                       d_server.toStringWithPort());
+  }
+
+private:
+  ComboAddress d_server;
+};
+
+
 extern std::vector<std::unique_ptr<Checker>> g_checkers;
 extern std::unique_ptr<SQLiteWriter> g_sqlw;
 void checkLuaTable(sol::table data,
                    const std::set<std::string>& mandatory,
                    const std::set<std::string>& opt = std::set<std::string>());
 
-void startWebService();
+void startWebService(sol::table data);
 void giveToWebService(const std::set<pair<Checker*, std::string>>&);
+void updateWebService();
+
 std::vector<ComboAddress> DNSResolveAt(const DNSName& name, const DNSType& type,
                                        const std::vector<ComboAddress>& servers,
                                        std::optional<ComboAddress> local = std::optional<ComboAddress>());

@@ -121,8 +121,6 @@ try
     fmt::print("Did not configure a notifier, can't notify anything\n");
   }
 
-  startWebService();
-  
   CheckResultFilter crf(300);
   auto prevFiltered = crf.getFilteredResults(); // should be none
   
@@ -180,7 +178,8 @@ try
     fmt::print("Got {} filtered results, ", filtered.size());
 
     giveToWebService(filtered);
-
+    updateWebService();
+    
     decltype(filtered) diff;
     set_difference(filtered.begin(), filtered.end(),
                    prevFiltered.begin(), prevFiltered.end(),

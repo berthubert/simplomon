@@ -101,7 +101,11 @@ void initLua()
   g_lua.set_function("ping", [&](sol::table data) {
     g_checkers.emplace_back(make_unique<PINGChecker>(data));
   });
-
+  /*
+  g_lua.set_function("smtp", [&](sol::table data) {
+    g_checkers.emplace_back(make_unique<SMTPChecker>(data));
+  });
+  */
   
   g_lua.set_function("pushoverNotifier", [&](sol::table data) {
     g_notifiers.emplace_back(
@@ -125,4 +129,6 @@ void initLua()
   g_lua.set_function("Logger", [&](const std::string& dbname) {
     g_sqlw = std::make_unique<SQLiteWriter>(dbname);
   });
+
+  g_lua.set_function("Webserver", startWebService);
 }

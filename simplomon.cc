@@ -188,6 +188,9 @@ try
     fmt::print("got {} NEW results, ", diff.size());
     auto sendOut=[&](bool newOld) {
       for(const auto& f : diff) {
+        if(g_sqlw)
+          g_sqlw->addValue({{"tstamp", time(nullptr)}, {"checker", f.first->getCheckerName()}, {"newOrOld", newOld}, {"message", f.second}}, "notifications");
+
         for(const auto & n : f.first->notifiers) {
           try {
             if(newOld) {

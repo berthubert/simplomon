@@ -44,7 +44,7 @@ void updateWebService()
     nlohmann::json cstate;
     
     auto attr = c->d_attributes;
-    nlohmann::json jattr, jresults;
+    nlohmann::json jattr=nlohmann::json::object(), jresults= nlohmann::json::object(), jreasons = nlohmann::json::object();
     for(const auto& a : c->d_attributes)
       jattr[a.first] = toJson(a.second);
 

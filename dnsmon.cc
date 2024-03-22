@@ -7,6 +7,7 @@
 #include "fmt/chrono.h"
 #include "simplomon.hh"
 #include "support.hh"
+#include <fstream>
 
 using namespace std;
 
@@ -60,6 +61,42 @@ static DNSMessageReader sendQuery(const vector<ComboAddress>& resolvers, DNSName
                                        );
 }
 
+vector<ComboAddress> getResolvers()
+{
+  ifstream ifs("/etc/resolv.conf");
+  
+  if(!ifs) 
+    return {ComboAddress("127.0.0.1", 53)};
+            
+  string line;
+  vector<ComboAddress> ret;
+  while(std::getline(ifs, line)) {
+    auto pos = line.find_last_not_of(" \r\n\x1a");
+    if(pos != string::npos)
+      line.resize(pos+1);
+    pos = line.find_first_not_of(" \t");
+    if(pos != string::npos)
+      line = line.substr(pos);
+    
+    pos = line.find_first_of(";#");
+    if(pos != string::npos)
+      line.resize(pos);
+    
+    if(line.rfind("nameserver ", 0)==0 || line.rfind("nameserver\t", 0) == 0) {
+      pos = line.find_first_not_of(" ", 11);
+      if(pos != string::npos) {
+        try {
+          ret.push_back(ComboAddress(line.substr(pos), 53));
+        }
+        catch(...)
+          {}
+      }
+    }
+  }
+  return ret;
+}
+
+
 std::vector<ComboAddress> DNSResolveAt(const DNSName& name, const DNSType& type,
                                        const std::vector<ComboAddress>& servers,
                                        std::optional<ComboAddress> local)
@@ -73,12 +110,63 @@ std::vector<ComboAddress> DNSResolveAt(const DNSName& name, const DNSType& type,
   DNSSection rrsection;
   uint32_t ttl;
   while(dmr.getRR(rrsection, dn, dt, ttl, rr)) {
-    // XXX should support IPv6 as well!
-    if(rrsection == DNSSection::Answer && dt == type && type == DNSType::A) {
-      ret.push_back(dynamic_cast<AGen*>(rr.get())->getIP());
+    if(rrsection == DNSSection::Answer && dt == type) {
+      if(type == DNSType::A)
+        ret.push_back(dynamic_cast<AGen*>(rr.get())->getIP());
+      else if(type == DNSType::AAAA)
+        ret.push_back(dynamic_cast<AAAAGen*>(rr.get())->getIP());
     }
   }
   return ret;
+}
+
+bool checkForWorkingIPv6()
+try
+{
+  DNSMessageWriter dmw(makeDNSName("."), DNSType::SOA);
+  
+  dmw.dh.rd = true;
+  dmw.randomizeID();
+  dmw.setEDNS(4000, false);
+
+  Socket sock(AF_INET6, SOCK_DGRAM);
+  SetNonBlocking(sock, true);
+  vector<ComboAddress> roots;
+  for(const auto& str : {"2001:503:ba3e::2:30", "2801:1b8:10::b", "2001:500:2::c", "2001:500:2d::d", "2001:500:a8::e",
+                         "2001:500:2f::f", "2001:500:12::d0d"})
+    roots.emplace_back(str, 53);
+
+
+  for(auto& r : roots) {
+    SSendto(sock, dmw.serialize(), r);
+  }
+  double timeout=1.5;
+  if(!waitForData(sock, &timeout)) {
+    return false;
+  }
+  ComboAddress rem=*roots.begin();
+  string resp = SRecvfrom(sock, 65535, rem);
+
+  // these will be identical because of the connect above
+  DNSMessageReader dmr(resp);
+  std::unique_ptr<RRGen> rr;
+  DNSName dn;
+  DNSType dt;
+  DNSSection rrsection;
+  uint32_t ttl;
+  while(dmr.getRR(rrsection, dn, dt, ttl, rr)) {
+    if(rrsection == DNSSection::Answer && dt == DNSType::SOA) {
+      fmt::print("Got answer from {}, SOA serial for root: {}\n",
+                 rem.toString(),
+                 dynamic_cast<SOAGen*>(rr.get())->d_serial);
+    }
+  }
+
+  // apparently we got a response
+  return true;
+}
+catch(...) {
+  return false;
 }
 
 

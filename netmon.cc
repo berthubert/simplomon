@@ -88,8 +88,6 @@ HTTPSChecker::HTTPSChecker(sol::table data) : Checker(data)
     d_attributes["localIP"] = d_localIP->toString();
   }
   
-  
-  
   if(!dns.empty()) {
     for(const auto& d : dns)
       d_dns.push_back(ComboAddress(d, 53));
@@ -104,108 +102,145 @@ CheckResult HTTPSChecker::perform()
 {
   d_results.clear();
   string serverIP;
-  ComboAddress activeServerIP;
-  activeServerIP.sin4.sin_family = 0; // "unset"
-  double dnsMsec = 0;
+  ComboAddress activeServerIP4, activeServerIP6;
+  activeServerIP4.sin4.sin_family = 0; // "unset"
+  activeServerIP6.sin4.sin_family = 0; // "unset"
+  double dnsMsec4 = 0, dnsMsec6 = 0;
+
+  DNSName qname = makeDNSName(extractHostFromURL(d_url));
+  
+  vector<ComboAddress> aaaas;
+  if(*g_haveIPv6) {
+    aaaas=DNSResolveAt(qname, DNSType::AAAA, getResolvers());
+    if(!aaaas.empty()) {
+      vector<string> as;
+      for(const auto& a : aaaas)
+        as.push_back(a.toString());
+      fmt::print("{} host has AAAA records {}\n", d_url, as);
+    }
+    else
+      fmt::print("{} host does NOT have AAAA records\n", d_url);
+  }
+  
   if(d_serverIP.has_value()) {
     serverIP = fmt::format(" (server IP {})", d_serverIP->toString());
-    activeServerIP = *d_serverIP;
+    activeServerIP4 = *d_serverIP;
+    activeServerIP6 = *d_serverIP;
   }
   else if(!d_dns.empty()) {
     vector<string> tofmt;
     for(const auto& d : d_dns)
       tofmt.push_back(d.toString());
 
-    DNSName qname = makeDNSName(extractHostFromURL(d_url));
     //    fmt::print("Going to do DNS lookup for {} over at {} using source {}\n",
     //               qname.toString(), tofmt, d_localIP.has_value() ? d_localIP->toString() : "default");
     DTime dt;
     std::vector<ComboAddress> r= DNSResolveAt(qname, DNSType::A, d_dns, d_localIP); 
-    activeServerIP = r.at(0);
-    d_results[""]["server-ip"] = activeServerIP.toString();
-    dnsMsec = dt.lapUsec() / 1000.0;
-    d_results[""]["dns-msec"] = dnsMsec;
+    activeServerIP4 = r.at(0);
+    d_results["ipv4"]["server-ip"] = activeServerIP4.toString();
+    dnsMsec4 = dt.lapUsec() / 1000.0;
+    d_results["ipv4"]["dns-msec"] = dnsMsec4;
 
-    serverIP = fmt::format(" (server IP {} from DNS {})", activeServerIP.toString(), tofmt);
+    serverIP = fmt::format(" (server IPv4 {} from DNS {})", activeServerIP4.toString(), tofmt);
+
+    r= DNSResolveAt(qname, DNSType::AAAA, d_dns, d_localIP); 
+    activeServerIP6 = r.at(0);
+    d_results["ipv6"]["server-ip"] = activeServerIP6.toString();
+    dnsMsec6 = dt.lapUsec() / 1000.0;
+    d_results["ipv6"]["dns-msec"] = dnsMsec6;
+
+    serverIP += fmt::format(" (server IPv6 {} from DNS {})", activeServerIP6.toString(), tofmt);
+    
     //    fmt::print("Got: {}\n", serverIP);
   }
   
   if(d_localIP.has_value()) {
     serverIP += fmt::format(" (local IP {})", d_localIP->toString());
   }
-  try {
+  CheckResult cr;
+  auto doCheck = [&](bool ipv6) {
     DTime dt;
     dt.start();
     MiniCurl mc;
     MiniCurl::certinfo_t certinfo;
     // XXX also do POST
-
-    string body = mc.getURL(d_url, d_method == "HEAD", &certinfo,
-                            activeServerIP.sin4.sin_family ? &activeServerIP : 0,
-                            d_localIP.has_value() ? &*d_localIP : 0);
-
-
-    double httpMsec = dt.lapUsec()/1000.0;
-    d_results[""]["http-msec"]= httpMsec;
-    d_results[""]["msec"]= dnsMsec + httpMsec;
-    d_results[""]["http-code"] = mc.d_http_code;
-    
-    if(mc.d_http_code >= 400)
-      return fmt::format("Content {} generated a {} status code{}", d_url, mc.d_http_code, serverIP);
-    
-    time_t now = time(nullptr);
-    if(d_maxAgeMinutes > 0 && mc.d_filetime > 0)
-      if(now - mc.d_filetime > d_maxAgeMinutes * 60)
-        return fmt::format("Content {} older than the {} minutes limit{}", d_url, d_maxAgeMinutes, serverIP);
-    
-    if(certinfo.empty())  {
-      return fmt::format("No certificates for '{}'{}", d_url,
-                         serverIP);
-    }
-    d_results[""]["bodySize"] = (int64_t)body.size();
-    if(body.size() < d_minBytes) {
-      return fmt::format("URL {} was available{}, but did not deliver at least {} bytes of data", d_url, serverIP, d_minBytes);
-    }
-    
-    //  fmt::print("{}\n", certinfo);
-    
-    time_t minexptime = std::numeric_limits<time_t>::max();
-    
-    for(auto& cert: certinfo) {
-      /*    fmt::print("Cert {}, subject: {}, alternate: {}, start date: {}, expire date: {}, ", cert.first, cert.second["Subject"],
-            cert.second["X509v3 Subject Alternative Name"],
-            cert.second["Start date"], cert.second["Expire date"]);
-      */
-      struct tm tm={};
-      // Jul 29 00:00:00 2023 GMT
+    ComboAddress activeServerIP = ipv6 ? activeServerIP6 : activeServerIP4;
+    string subject = ipv6 ? "ipv6" : "ipv4";
+    try {
+      string body = mc.getURL(d_url, d_method == "HEAD", &certinfo,
+                              activeServerIP.sin4.sin_family ? &activeServerIP : 0,
+                              d_localIP.has_value() ? &*d_localIP : 0);
       
-      strptime(cert.second["Expire date"].c_str(), "%b %d %H:%M:%S %Y", &tm);
-      time_t expire = mktime(&tm);
-      strptime(cert.second["Start date"].c_str(), "%b %d %H:%M:%S %Y", &tm);
-      time_t start = mktime(&tm);
       
-      if(now < start) {
-        return fmt::format("certificate for {} not yet valid{}",
-                           d_url, serverIP);
+      double httpMsec = dt.lapUsec()/1000.0;
+      d_results[subject]["http-msec"]= httpMsec;
+      d_results[subject]["msec"]= (ipv6 ? dnsMsec6 : dnsMsec4) + httpMsec;
+      d_results[subject]["http-code"] = mc.d_http_code;
+      
+      if(mc.d_http_code >= 400) {
+        cr.d_reasons[subject].push_back(fmt::format("Content {} generated a {} status code{}", d_url, mc.d_http_code, serverIP));
+        return;
       }
-      //    fmt::print("days left: {:.1f}\n", (expire - now)/86400.0);
-      minexptime = min(expire, minexptime);
+      
+      time_t now = time(nullptr);
+      if(d_maxAgeMinutes > 0 && mc.d_filetime > 0) {
+        if(now - mc.d_filetime > d_maxAgeMinutes * 60) {
+          cr.d_reasons[subject].push_back(fmt::format("Content {} older than the {} minutes limit{}", d_url, d_maxAgeMinutes, serverIP));
+          return;
+        }
+      }
+      
+      if(certinfo.empty())  {
+        cr.d_reasons[subject].push_back(fmt::format("No certificates for '{}'{}", d_url, serverIP));
+        return;
+      }
+      d_results[subject]["bodySize"] = (int64_t)body.size();
+      if(body.size() < d_minBytes) {
+        cr.d_reasons[subject].push_back(fmt::format("URL {} was available{}, but did not deliver at least {} bytes of data", d_url, serverIP, d_minBytes));
+        return;
+      }
+      
+      time_t minexptime = std::numeric_limits<time_t>::max();
+      
+      for(auto& cert: certinfo) {
+        struct tm tm={};
+        // Jul 29 00:00:00 2023 GMT
+        
+        strptime(cert.second["Expire date"].c_str(), "%b %d %H:%M:%S %Y", &tm);
+        time_t expire = mktime(&tm);
+        strptime(cert.second["Start date"].c_str(), "%b %d %H:%M:%S %Y", &tm);
+        time_t start = mktime(&tm);
+        
+        if(now < start) {
+          cr.d_reasons[subject].push_back(fmt::format("certificate for {} not yet valid{}",
+                                                      d_url, serverIP));
+          return;
+        }
+        //    fmt::print("days left: {:.1f}\n", (expire - now)/86400.0);
+        minexptime = min(expire, minexptime);
+      }
+      double days = (minexptime - now)/86400.0;
+      d_results[subject]["tlsMinExpDays"]=days;
+      //  fmt::print("'{}': first cert expires in {:.1f} days (lim {})\n", d_url, days,
+      //             d_minCertDays);
+      if(days < d_minCertDays) {
+        cr.d_reasons[subject].push_back(fmt::format("A certificate for '{}' expires in {:d} days{}",
+                                                    d_url, (int)round(days), serverIP));
+        return;
+      }
     }
-    double days = (minexptime - now)/86400.0;
-    d_results[""]["tlsMinExpDays"]=days;
-    //  fmt::print("'{}': first cert expires in {:.1f} days (lim {})\n", d_url, days,
-    //             d_minCertDays);
-    if(days < d_minCertDays) {
-      return fmt::format("A certificate for '{}' expires in {:d} days{}",
-                         d_url, (int)round(days), serverIP);
+    catch(exception& e) {
+      cr.d_reasons[subject].push_back(e.what() + serverIP);
     }
-    return "";
-  }
-  catch(exception& e) {
-    return e.what() + serverIP;
-  }
-  return "";
+    
+  };
+  doCheck(false);
+  if(!aaaas.empty())
+    doCheck(true);
+  return cr;
 }
+    
+    
 
 HTTPRedirChecker::HTTPRedirChecker(sol::table data) : Checker(data)
 {

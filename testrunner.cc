@@ -14,7 +14,7 @@
 using namespace std;
 vector<std::unique_ptr<Checker>> g_checkers;
 vector<std::shared_ptr<Notifier>> g_notifiers;
-
+std::optional<bool> g_haveIPv6;
 std::unique_ptr<SQLiteWriter> g_sqlw;
 
 TEST_CASE("alert filter test") {

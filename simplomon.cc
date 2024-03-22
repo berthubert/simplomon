@@ -17,7 +17,7 @@ using namespace std;
 
 vector<std::unique_ptr<Checker>> g_checkers;
 vector<std::shared_ptr<Notifier>> g_notifiers;
-
+std::optional<bool> g_haveIPv6;
 std::unique_ptr<SQLiteWriter> g_sqlw;
 
 /* the idea
@@ -111,6 +111,10 @@ try
     fmt::print("Did not configure a notifier, can't notify anything\n");
   }
 
+  if(!g_haveIPv6) {
+    g_haveIPv6 = checkForWorkingIPv6();
+  }
+  fmt::print("IPv6 checks: {}\n", *g_haveIPv6 ? "enabled" : "disabled");
   CheckResultFilter crf(300);
   auto prevFiltered = crf.getFilteredResults(); // should be none
   int numWorkers = 4;

@@ -130,5 +130,9 @@ void initLua()
     g_sqlw = std::make_unique<SQLiteWriter>(dbname);
   });
 
+  g_lua.set_function("doIPv6", [&](bool ipv6) {
+    g_haveIPv6 = ipv6;
+  });
+  
   g_lua.set_function("Webserver", startWebService);
 }

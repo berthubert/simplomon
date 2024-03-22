@@ -52,9 +52,16 @@ void updateWebService()
       for(const auto& res : r.second)
         jresults[r.first][res.first] = toJson(res.second);
     }
+
+    for(const auto& r: c->d_reasons.d_reasons) {
+      for(const auto& res : r.second)
+        jreasons[r.first].push_back(res);
+    }
+
+    
     cstate["attr"] = jattr;
     cstate["results"] = jresults;
-    
+    cstate["reasons"] = jreasons;
     s_checkerstates[c->getCheckerName()].push_back(cstate);
   }
 }

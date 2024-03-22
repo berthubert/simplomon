@@ -53,7 +53,7 @@ CheckResult TCPPortClosedChecker::perform()
         continue;
       }
       if(ret >= 0) {
-        cr.d_reasons.push_back(fmt::format("Was able to connect to TCP {} which should be closed", rem.toStringWithPort()));
+        cr.d_reasons[rem.toStringWithPort()].push_back(fmt::format("Was able to connect to TCP {} which should be closed", rem.toStringWithPort()));
       }
     }
   }
@@ -70,6 +70,7 @@ HTTPSChecker::HTTPSChecker(sol::table data) : Checker(data)
   d_minCertDays =  data.get_or("minCertDays", 14);
   string serverip= data.get_or("serverIP", string(""));
   string localip= data.get_or("localIP", string(""));
+  
   d_minBytes =     data.get_or("minBytes", 0);
   d_method =       data.get_or("method", string("GET"));
   vector<string> dns = data.get_or("dns", vector<string>());
@@ -81,11 +82,14 @@ HTTPSChecker::HTTPSChecker(sol::table data) : Checker(data)
     d_serverIP = ComboAddress(serverip, 443);
     d_attributes["serverIP"] = d_serverIP->toStringWithPort();
   }
+  
   if(!localip.empty()) {
     d_localIP = ComboAddress(localip);
     d_attributes["localIP"] = d_localIP->toString();
   }
-
+  
+  
+  
   if(!dns.empty()) {
     for(const auto& d : dns)
       d_dns.push_back(ComboAddress(d, 53));
@@ -158,7 +162,7 @@ CheckResult HTTPSChecker::perform()
       return fmt::format("No certificates for '{}'{}", d_url,
                          serverIP);
     }
-    
+    d_results[""]["bodySize"] = (int64_t)body.size();
     if(body.size() < d_minBytes) {
       return fmt::format("URL {} was available{}, but did not deliver at least {} bytes of data", d_url, serverIP, d_minBytes);
     }
@@ -379,7 +383,7 @@ CheckResult PINGChecker::perform()
     SWrite(sock, packet);
     double timeo=1.0;
     if(!waitForData(sock, &timeo)) { // timeout
-      ret.d_reasons.push_back(fmt::format("Timeout waiting for ping response from {}",
+      ret.d_reasons[s.toStringWithPort()].push_back(fmt::format("Timeout waiting for ping response from {}",
                                         s.toString()));
       continue;
     }
@@ -395,7 +399,7 @@ CheckResult PINGChecker::perform()
     
     int len = recvmsg(sock, &msgh, 0);
     if(len < 0) {
-      ret.d_reasons.push_back("Receiving ping response from "+s.toString()+": " + string(strerror(errno)));
+      ret.d_reasons[s.toStringWithPort()].push_back("Receiving ping response from "+s.toString()+": " + string(strerror(errno)));
       continue;
     }
     int ttl = -1;

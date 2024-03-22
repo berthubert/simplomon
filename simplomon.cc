@@ -40,46 +40,36 @@ set<pair<Checker*, std::string>> CheckResultFilter::getFilteredResults()
   set<pair<Checker*, std::string>> ret;
   time_t now = time(nullptr);
 
-  //  map<Checker*, map<std::string, set<time_t> > > d_reports;
+  //  map<Checker*, map<std::string, map<std::string, set<time_t> > > > d_reports;
   for(const auto& r : d_reports) {
     Checker& ptr = *r.first;
     time_t lim = now - ptr.d_failurewin;
-    for(const auto& sp : r.second) {
-      int count = count_if(sp.second.begin(), sp.second.end(),
-                           [&](const auto& r) { return r >= lim; });
-      if(count >= ptr.d_minfailures)
-        ret.emplace(&ptr, sp.first);
-      else if(count)
-        fmt::print("Alert '{}' not repeated enough in {} seconds, {} < {}, oldest alert: {}\n",
-                   sp.first, ptr.d_failurewin, count, ptr.d_minfailures,
-                   sp.second.empty() ? 0 : *sp.second.begin()
-                   );
+    for(const auto& sp1 : r.second) {
+      for(const auto& sp : sp1.second) {
+        int count = count_if(sp.second.begin(), sp.second.end(),
+                             [&](const auto& r) { return r >= lim; });
+        if(count >= ptr.d_minfailures)
+          ret.emplace(&ptr, sp.first);
+        else if(count)
+          fmt::print("Alert '{}' not repeated enough in {} seconds, {} < {}, oldest alert: {}\n",
+                     sp.first, ptr.d_failurewin, count, ptr.d_minfailures,
+                     sp.second.empty() ? 0 : *sp.second.begin()
+                     );
+      }
     }
   }
   // and now the cleanup
   time_t lim = now - d_maxseconds;
-  for(auto iter = d_reports.begin(); iter != d_reports.end(); ) {
-    // per Checker, map<string, set<time_t>>
-    for(auto iter2 = iter->second.begin() ; iter2 != iter->second.end();) {
-      // pair<string, set<time_t>>
-      // clean up old time_t's from the set
-      //      fmt::print("Cleanup for '{}', before: {}", iter2->first, iter2->second.size());
-      erase_if(iter2->second, [&lim](const auto& a) { return a < lim; });
-      //fmt::print(", after: {}\n", iter2->second.size());
-      
-      // if nothing is left, erase ourselves (the pair within the checker)
-      if(iter2->second.empty()) {
-        //fmt::print("Cleaning up entire message '{}'\n", iter2->first);
-        iter2 = iter->second.erase(iter2);
+
+  //  std::map<Checker*, std::map<std::string, map<std::string, std::set<time_t>> >> d_reports;
+  for(auto& cpair : d_reports) {
+    for(auto& spair: cpair.second) {
+      for(auto& alertpair: spair.second) {
+        // alertpair.second = std::set<time_t> 
+        erase_if(alertpair.second, [&lim](const auto& a) { return a < lim; });
       }
-      else
-        ++iter2;
+      erase_if(spair.second, [](const auto& a) { return a.second.empty(); } );
     }
-    // if the map is empty, erase the checker too
-    if(iter->second.empty())
-      iter = d_reports.erase(iter);
-    else
-      ++iter;
   }
   return ret;
 }
@@ -123,15 +113,15 @@ try
 
   CheckResultFilter crf(300);
   auto prevFiltered = crf.getFilteredResults(); // should be none
-  
+  int numWorkers = 4;
   for(;;) {
     time_t startRun = time(nullptr);
     
-    for(auto &c : g_checkers) {
-      vector<string> reasons;
+    auto doCheck = [&](std::unique_ptr<Checker>& c) {
+      map<string, vector<string>> reasons;
       try {
-        CheckResult cr = c->perform();
-        reasons = cr.d_reasons;
+        c->Perform(); 
+        reasons = c->d_reasons.d_reasons;
         if(!c->d_results.empty()) {
           auto attr = c->d_attributes;
           for(const auto& r: c->d_results) {
@@ -148,30 +138,51 @@ try
         }
       }
       catch(exception& e) {
-        reasons = {"Exception caught: "+string(e.what())};
+        reasons = {{"", {"Exception caught: "+string(e.what())}}};
       }
       catch(...) {
-        reasons = {"Unknown exception caught"};
+        reasons = {{"", {"Unknown exception caught"}}};
       }
 
+      //              subject         reasons
+      //   std::map<std::string,vector<std::string>> d_reasons;
       for(const auto& reason : reasons) {
-        if(reason.empty())
+        if(reason.second.empty())
           continue;
-        if(!c->d_mute)
-          crf.reportResult(c.get(), reason);
-        if(g_sqlw) {
-          auto attr = c->d_attributes;
-          std::vector<std::pair<const char*, SQLiteWriter::var_t>> out;
-          for(const auto& a : attr)
-            out.push_back({a.first.c_str(), a.second});
-          out.push_back({"checker", c->getCheckerName()});
-          out.push_back({"reason", reason});
-          out.push_back({"tstamp", time(nullptr)});
-          g_sqlw->addValue(out, "reports");
+        for(const auto& r2 : reason.second) {
+          if(r2.empty())
+            continue;
+          if(!c->d_mute)
+            crf.reportResult(c.get(), reason.first, r2);
+          if(g_sqlw) {
+            auto attr = c->d_attributes;
+            std::vector<std::pair<const char*, SQLiteWriter::var_t>> out;
+            for(const auto& a : attr)
+              out.push_back({a.first.c_str(), a.second});
+            out.push_back({"checker", c->getCheckerName()});
+            out.push_back({"subject", reason.first});
+            out.push_back({"reason", r2});
+            out.push_back({"tstamp", time(nullptr)});
+            g_sqlw->addValue(out, "reports");
+          }
         }
       }
       fmt::print("."); cout.flush();
-    }
+    };
+    atomic<size_t> ctr = 0;
+    auto worker = [&ctr, &doCheck]() { 
+      for(size_t n = ctr++; n < g_checkers.size(); n = ctr++)
+        doCheck(g_checkers.at(n));
+    };
+
+    vector<thread> workers;
+    for(int n=0; n < numWorkers; ++n)  // number of threads
+      workers.emplace_back(worker);
+    
+    for(auto& w : workers)
+      w.join();
+
+    
     fmt::print("\n");
     // these are the active filtered alerts
     auto filtered = crf.getFilteredResults();
@@ -204,8 +215,9 @@ try
             fmt::print("Failed to send notification: {}\n", e.what());
           }
         }
-        if(newOld) 
+        if(newOld)  {
           fmt::print("Sent out notification: {}\n", f.second);
+        }
         else
           fmt::print("Sent out resolved: {}\n", f.second);
       }
@@ -227,6 +239,12 @@ try
       int sleeptime = interval - passed;
       fmt::print(", sleeping {} seconds\n", sleeptime);
       sleep(sleeptime);
+    }
+    else {
+      fmt::print(", did not meet our interval of {} seconds with {} workers, possibly raising\n",
+                 interval, numWorkers);
+      if(numWorkers < 16) 
+        numWorkers++;
     }
   }
 }

@@ -18,9 +18,17 @@ void initLua();
 struct CheckResult
 {
   CheckResult() {}
-  CheckResult(const char* reason) : d_reasons({reason}) {}
-  CheckResult(const std::string& reason) : d_reasons({reason}) {}
-  std::vector<std::string> d_reasons;
+  CheckResult(const char* reason) : d_reasons({{"", {reason}}})
+  {
+    if(!*reason)
+      d_reasons.clear();
+  }
+  CheckResult(const std::string& reason) : d_reasons({{"", {reason}}})
+  {
+    if(reason.empty())
+      d_reasons.clear();
+  }
+  std::map<std::string,vector<std::string>> d_reasons;
 };
 
 extern std::vector<std::shared_ptr<Notifier>> g_notifiers;
@@ -44,30 +52,23 @@ public:
     notifiers = g_notifiers;
   }
   Checker(const Checker&) = delete;
+  void Perform()
+  {
+    d_reasons = this->perform();
+  }
   virtual CheckResult perform() = 0;
   virtual std::string getDescription() = 0;
   virtual std::string getCheckerName() = 0;
   std::map<std::string, SQLiteWriter::var_t> d_attributes;
   std::map<std::string, std::map<std::string, SQLiteWriter::var_t>> d_results;
-
-  CheckResult getStatus() 
-  {
-    std::lock_guard<std::mutex> l(d_m);
-    return d_status;
-  }
-  void setStatus(const CheckResult& cr) 
-  {
-    std::lock_guard<std::mutex> l(d_m);
-    d_status = cr; 
-  }
-  
   int d_minfailures=1;
   int d_failurewin = 120;
 
   std::vector<std::shared_ptr<Notifier>> notifiers;
   bool d_mute = false;
+  CheckResult d_reasons;
 private:
-  CheckResult d_status;
+
   std::mutex d_m;
 };
 
@@ -75,18 +76,18 @@ private:
 struct CheckResultFilter
 {
   explicit CheckResultFilter(int maxseconds=3600) : d_maxseconds(maxseconds) {}
-  void reportResult(Checker* source, const std::string& cr, time_t t)
+  void reportResult(Checker* source, const std::string& subject, const std::string& cr, time_t t)
   {
-    d_reports[source][cr].insert(t);
+    d_reports[source][subject][cr].insert(t);
   }
-  void reportResult(Checker* source, const std::string& cr)
+  void reportResult(Checker* source, const std::string& subject, const std::string& cr)
   {
-    reportResult(source, cr, time(nullptr));
+    reportResult(source, subject, cr, time(nullptr));
   }
 
   std::set<pair<Checker*, std::string>> getFilteredResults();
 
-  map<Checker*, map<std::string, std::set<time_t>> > d_reports;
+  std::map<Checker*, std::map<std::string, map<std::string, std::set<time_t>> >> d_reports;
   
   int d_maxseconds;
 };
@@ -218,6 +219,7 @@ private:
   unsigned int d_minCertDays = 14;
   std::optional<ComboAddress> d_serverIP, d_localIP;
   std::vector<ComboAddress> d_dns;
+
   std::string d_method;
 };
 

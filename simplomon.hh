@@ -49,6 +49,7 @@ public:
     data["minFailures"] = sol::lua_nil;
     data["failureWindow"] = sol::lua_nil;
     // bake in
+    //    fmt::print("Baking in {} notifiers\n", g_notifiers.size());
     notifiers = g_notifiers;
   }
   Checker(const Checker&) = delete;

@@ -98,6 +98,16 @@ HTTPSChecker::HTTPSChecker(sol::table data) : Checker(data)
     throw runtime_error(fmt::format("only support HTTP HEAD & GET methods, not '{}'", d_method));
 }
 
+double roundDec(double val, int dec)
+{
+  double fact = pow(10, dec);
+  return ((int)(fact*val))/fact;
+}
+
+/*
+An issue here is what certificates we actually check for expiry, we need the *whole* chain,
+from http://blah to https://www.blah/ 
+*/
 CheckResult HTTPSChecker::perform()
 {
   d_results.clear();
@@ -116,10 +126,10 @@ CheckResult HTTPSChecker::perform()
       vector<string> as;
       for(const auto& a : aaaas)
         as.push_back(a.toString());
-      fmt::print("{} host has AAAA records {}\n", d_url, as);
+      //      fmt::print("{} host has AAAA records {}\n", d_url, as);
     }
     else
-      fmt::print("{} host does NOT have AAAA records\n", d_url);
+      ; // fmt::print("{} host does NOT have AAAA records\n", d_url);
   }
   
   if(d_serverIP.has_value()) {
@@ -135,46 +145,60 @@ CheckResult HTTPSChecker::perform()
     //    fmt::print("Going to do DNS lookup for {} over at {} using source {}\n",
     //               qname.toString(), tofmt, d_localIP.has_value() ? d_localIP->toString() : "default");
     DTime dt;
-    std::vector<ComboAddress> r= DNSResolveAt(qname, DNSType::A, d_dns, d_localIP); 
+    std::vector<ComboAddress> r= DNSResolveAt(qname, DNSType::A, d_dns, d_localIP4, d_localIP6); 
     activeServerIP4 = r.at(0);
     d_results["ipv4"]["server-ip"] = activeServerIP4.toString();
     dnsMsec4 = dt.lapUsec() / 1000.0;
-    d_results["ipv4"]["dns-msec"] = dnsMsec4;
+    d_results["ipv4"]["dns-msec"] = roundDec(dnsMsec4, 1);
 
     serverIP = fmt::format(" (server IPv4 {} from DNS {})", activeServerIP4.toString(), tofmt);
 
-    r= DNSResolveAt(qname, DNSType::AAAA, d_dns, d_localIP); 
+    r= DNSResolveAt(qname, DNSType::AAAA, d_dns, d_localIP4, d_localIP6); 
     activeServerIP6 = r.at(0);
     d_results["ipv6"]["server-ip"] = activeServerIP6.toString();
     dnsMsec6 = dt.lapUsec() / 1000.0;
-    d_results["ipv6"]["dns-msec"] = dnsMsec6;
+    d_results["ipv6"]["dns-msec"] = roundDec(dnsMsec6, 1);
 
     serverIP += fmt::format(" (server IPv6 {} from DNS {})", activeServerIP6.toString(), tofmt);
     
     //    fmt::print("Got: {}\n", serverIP);
   }
   
-  if(d_localIP.has_value()) {
-    serverIP += fmt::format(" (local IP {})", d_localIP->toString());
+  if(d_localIP4.has_value()) {
+    serverIP += fmt::format(" (local IPv4 {})", d_localIP4->toString());
   }
+  if(d_localIP6.has_value()) {
+    serverIP += fmt::format(" (local IPv6 {})", d_localIP6->toString());
+  }
+
   CheckResult cr;
   auto doCheck = [&](bool ipv6) {
     DTime dt;
     dt.start();
-    MiniCurl mc;
+    MiniCurl mc(d_agent); 
     MiniCurl::certinfo_t certinfo;
     // XXX also do POST
     ComboAddress activeServerIP = ipv6 ? activeServerIP6 : activeServerIP4;
     string subject = ipv6 ? "ipv6" : "ipv4";
     try {
+      ComboAddress li;
+      if(!ipv6) {
+        if(d_localIP4) li = *d_localIP4;
+        else li = ComboAddress("0.0.0.0",0);
+      }
+      else { // ipv6
+        if(d_localIP6) li = *d_localIP6;
+        else li = ComboAddress("::",0);
+      }
+      
       string body = mc.getURL(d_url, d_method == "HEAD", &certinfo,
                               activeServerIP.sin4.sin_family ? &activeServerIP : 0,
-                              d_localIP.has_value() ? &*d_localIP : 0);
+                              &li);
       
       
       double httpMsec = dt.lapUsec()/1000.0;
-      d_results[subject]["http-msec"]= httpMsec;
-      d_results[subject]["msec"]= (ipv6 ? dnsMsec6 : dnsMsec4) + httpMsec;
+      d_results[subject]["http-msec"]= roundDec(httpMsec, 1);
+      d_results[subject]["msec"] = roundDec((ipv6 ? dnsMsec6 : dnsMsec4) + httpMsec, 1);
       d_results[subject]["http-code"] = mc.d_http_code;
       
       if(mc.d_http_code >= 400) {

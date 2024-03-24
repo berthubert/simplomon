@@ -52,7 +52,8 @@ MiniCurl::MiniCurl(const string& useragent)
 
 MiniCurl::~MiniCurl()
 {
-  // NEEDS TO CLEAN HOSTLIST
+  if(d_host_list)
+    curl_slist_free_all(d_host_list);
   curl_easy_cleanup(d_curl);
 }
 
@@ -81,7 +82,10 @@ string extractHostFromURL(const std::string& url)
 void MiniCurl::setupURL(const std::string& str, const ComboAddress* rem, const ComboAddress* src)
 {
   if(rem) {
-    struct curl_slist *hostlist = nullptr; // THIS SHOULD BE FREED
+    if(d_host_list) {
+      curl_slist_free_all(d_host_list);
+      d_host_list = nullptr;
+    }
 
     // url = http://hostname.enzo/url
     string host4=extractHostFromURL(str);
@@ -99,10 +103,10 @@ void MiniCurl::setupURL(const std::string& str, const ComboAddress* rem, const C
     for (const auto& port : ports) {
       string hcode = fmt::sprintf("%s:%u:[%s]", host4 , port , rem->toString());
       //      fmt::print("hcode: {}\n", hcode);
-      hostlist = curl_slist_append(hostlist, hcode.c_str());
+      d_host_list = curl_slist_append(d_host_list, hcode.c_str());
     }
 
-    curl_easy_setopt(d_curl, CURLOPT_RESOLVE, hostlist);
+    curl_easy_setopt(d_curl, CURLOPT_RESOLVE, d_host_list);
   }
   // should be a setting
   curl_easy_setopt(d_curl, CURLOPT_FOLLOWLOCATION, 1L);
@@ -119,7 +123,8 @@ void MiniCurl::setupURL(const std::string& str, const ComboAddress* rem, const C
   curl_easy_setopt(d_curl, CURLOPT_CERTINFO, 1L);
   curl_easy_setopt(d_curl, CURLOPT_FILETIME, 1L);
   if(src) {
-    int ret = curl_easy_setopt(d_curl, CURLOPT_INTERFACE, src->toString().c_str());
+    curl_easy_setopt(d_curl, CURLOPT_INTERFACE, src->toString().c_str());
+    // XXX report errors!!
     //    fmt::print("Setting interface to '{}', ret {}\n", src->toString().c_str(),
     //         ret);
   }
@@ -134,7 +139,10 @@ std::string MiniCurl::getURL(const std::string& str, const bool nobody, MiniCurl
   if (nobody)
     curl_easy_setopt(d_curl, CURLOPT_NOBODY, 1L);
   auto res = curl_easy_perform(d_curl);
-
+  if(d_host_list) {
+    curl_slist_free_all(d_host_list);
+    d_host_list = nullptr;
+  }
   if(res != CURLE_OK)  {
     throw std::runtime_error("Unable to retrieve URL '"+str+ "': "+string(curl_easy_strerror(res)));
   }

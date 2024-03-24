@@ -107,25 +107,39 @@ void initLua()
   });
   */
   
-  g_lua.set_function("pushoverNotifier", [&](sol::table data) {
-    g_notifiers.emplace_back(
-                             make_shared<PushoverNotifier>(data.get<string>("user"),
-                                                           data.get<string>("apikey")));
+  g_lua.set_function("addPushoverNotifier", [&](sol::table data) {
+    g_notifiers.emplace_back(make_shared<PushoverNotifier>(data));
     return *g_notifiers.rbegin();
   });
-
-  g_lua.set_function("ntfyNotifier", [&](sol::table data) {
-    g_notifiers.emplace_back(
-                             make_shared<NtfyNotifier>(data));
-    return *g_notifiers.rbegin();
+  g_lua.set_function("createPushoverNotifier", [&](sol::table data) {
+    return make_shared<PushoverNotifier>(data);
   });
 
-  g_lua.set_function("emailNotifier", [&](sol::table data) {
-    g_notifiers.emplace_back(
-                             make_shared<EmailNotifier>(data));
+  g_lua.set_function("addNtfyNotifier", [&](sol::table data) {
+    g_notifiers.emplace_back(make_shared<NtfyNotifier>(data));
     return *g_notifiers.rbegin();
   });
+  g_lua.set_function("createNtfyNotifier", [&](sol::table data) {
+    return make_shared<NtfyNotifier>(data);
+  });
 
+  g_lua.set_function("addEmailNotifier", [&](sol::table data) {
+    g_notifiers.emplace_back(make_shared<EmailNotifier>(data));
+    return *g_notifiers.rbegin();
+  });
+  g_lua.set_function("createEmailNotifier", [&](sol::table data) {
+    return make_shared<EmailNotifier>(data);
+  });
+
+  g_lua.set_function("setNotifiers", [&](vector<shared_ptr<Notifier>> notifs) {
+    g_notifiers.resize(2); // need to keep the system notifiers
+    
+    //    fmt::print("Setting {} notifiers\n", notifs.size());
+    for(auto& n : notifs)
+      g_notifiers.push_back(n);
+    
+  });
+  
   g_lua.set_function("Logger", [&](const std::string& dbname) {
     g_sqlw = std::make_unique<SQLiteWriter>(dbname);
   });

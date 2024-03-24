@@ -20,36 +20,41 @@ vector<std::shared_ptr<Notifier>> g_notifiers;
 std::optional<bool> g_haveIPv6;
 std::unique_ptr<SQLiteWriter> g_sqlw;
 
+
 /* the idea
    Every checker can generate multiple alerts.
    However, some alerts should only be reported if they persist for a bit
-   This means we should only pass on an alert if we've seen it for a while now
-   Alerts can't generate persistent identifiers (id) for the same alert 
-   So we must use the text representation and the checker should keep that constant
+   This means we should only pass on an alert if we've seen it x times in y minutes
+   This defines the checkers' *sensitivity*
 
-   our throtle then consists of a set of strings and when they were reported per checker
-   If a checker stops reporting that string, that is fine
+   Some people, perhaps less operational, are not interested in 5 minute outages. 
+   So even if we report something to a notifier, perhaps it will not go out, until we've been 
+   reporting the outage for 30 minutes. 
 
-   we ask the throttle: give me a list of active alerts
-   We never talk to the checker directly
+   To do this, we report a whole *set* of alerts to a notifier.
+   The notifier then uses supplied functionality to only report stuff that has been around enough.
+
+   
 */
 
 set<pair<Checker*, std::string>> CheckResultFilter::getFilteredResults()
 {
-
   set<pair<Checker*, std::string>> ret;
   time_t now = time(nullptr);
 
-  //  map<Checker*, map<std::string, map<std::string, set<time_t> > > > d_reports;
+  //                            subject         text
+  //  map<Checker*, std::map<std::string, map<std::string, std::set<time_t>> >> d_reports;
+
   for(const auto& r : d_reports) {
     Checker& ptr = *r.first;
     time_t lim = now - ptr.d_failurewin;
+    
     for(const auto& sp1 : r.second) {
       for(const auto& sp : sp1.second) {
         int count = count_if(sp.second.begin(), sp.second.end(),
                              [&](const auto& r) { return r >= lim; });
         if(count >= ptr.d_minfailures)
-          ret.emplace(&ptr, sp.first);
+          ret.emplace(&ptr, ptr.getCheckerName()+": ["+sp1.first+"] " + sp.first);
         else if(count)
           fmt::print("Alert '{}' not repeated enough in {} seconds, {} < {}, oldest alert: {}\n",
                      sp.first, ptr.d_failurewin, count, ptr.d_minfailures,
@@ -78,6 +83,10 @@ int main(int argc, char **argv)
 try
 {
   initLua();
+  g_notifiers.emplace_back(make_shared<SQLiteWriterNotifier>());
+  auto webNotifier = make_shared<InternalWebNotifier>();
+  g_notifiers.emplace_back(webNotifier);
+  
   try {
     if(auto ptr = getenv("SIMPLOMON_CONFIG_URL")) {
       MiniCurl mc;
@@ -106,18 +115,27 @@ try
     fmt::print("Error parsing configuration: {}\n", e.what());
     return EXIT_FAILURE;
   }
-
-  if(g_notifiers.empty()) {
-    fmt::print("Did not configure a notifier, can't notify anything\n");
-  }
-
+  
   if(!g_haveIPv6) {
     g_haveIPv6 = checkForWorkingIPv6();
   }
   fmt::print("IPv6 checks: {}\n", *g_haveIPv6 ? "enabled" : "disabled");
+
+  {
+    set<Checker*> cks;
+    for(const auto &c : g_checkers)
+      cks.insert(c.get());
+    if(cks.size() == 1) {
+      fmt::print("Warning: no checker has a notifier!\n");
+    }
+    else
+      fmt::print("There are {} checkers with {} unique notifiers\n", g_checkers.size(), cks.size());
+  }
+  
   CheckResultFilter crf(300);
   auto prevFiltered = crf.getFilteredResults(); // should be none
-  int numWorkers = 4;
+  
+  int numWorkers = 8;
   for(;;) {
     time_t startRun = time(nullptr);
     
@@ -189,54 +207,30 @@ try
     
     fmt::print("\n");
     // these are the active filtered alerts
+    // set<pair<Checker*, std::string>> - the string includes the subject of the result ([ipv4])
     auto filtered = crf.getFilteredResults();
     fmt::print("Got {} filtered results, ", filtered.size());
 
-    giveToWebService(filtered);
+
+    // now, not all of these need to go to all notifiers
+    // idea: tell all notifiers that a new batch is coming
+    // and also tell them when we are done.
+    // once we are done, tell them that too
+    // they then determine what changed & send out notifications accordingly
+
+    set<shared_ptr<Notifier>> notified;
+    for(auto& f : filtered)
+      for(auto & n : f.first->notifiers) {
+        notified.insert(n);
+        n->bulkAlert(f.second);
+      }
+
+    for(auto& n : notified)
+      n->bulkDone();
+
+    giveToWebService(filtered, webNotifier->getTimes()); 
     updateWebService();
     
-    decltype(filtered) diff;
-    set_difference(filtered.begin(), filtered.end(),
-                   prevFiltered.begin(), prevFiltered.end(),
-                   inserter(diff, diff.begin()));
-    
-    fmt::print("got {} NEW results, ", diff.size());
-    auto sendOut=[&](bool newOld) {
-      for(const auto& f : diff) {
-        if(g_sqlw)
-          g_sqlw->addValue({{"tstamp", time(nullptr)}, {"checker", f.first->getCheckerName()}, {"newOrOld", newOld}, {"message", f.second}}, "notifications");
-
-        for(const auto & n : f.first->notifiers) {
-          try {
-            if(newOld) {
-              n->alert(f.second);
-            }
-            else {
-              n->alert(fmt::format("🎉 the following alert is over: {}", f.second));
-            }
-          }
-          catch(exception& e) {
-            fmt::print("Failed to send notification: {}\n", e.what());
-          }
-        }
-        if(newOld)  {
-          fmt::print("Sent out notification: {}\n", f.second);
-        }
-        else
-          fmt::print("Sent out resolved: {}\n", f.second);
-      }
-    };
-
-    sendOut(true);
-
-    diff.clear();
-    set_difference(prevFiltered.begin(), prevFiltered.end(),
-                   filtered.begin(), filtered.end(),
-                   inserter(diff, diff.begin()));
-    fmt::print("{} alerts were resolved", diff.size());
-    
-    sendOut(false);
-    prevFiltered = filtered;
     time_t passed = time(nullptr) - startRun;
     int interval = 60;
     if(passed < interval) {

@@ -6,14 +6,22 @@
 static std::mutex s_lock;
 static nlohmann::json s_state;
 static nlohmann::json s_checkerstates;
-void giveToWebService(const std::set<pair<Checker*, std::string>>& cs)
+void giveToWebService(const std::set<pair<Checker*, std::string>>& cs,
+                      const std::map<std::string, time_t>& startAlerts)
 {
   std::lock_guard<mutex> m(s_lock);
   s_state = nlohmann::json::object();
 
   auto arr = nlohmann::json::array();
   for(const auto& c: cs) {
-    arr.push_back(c.second);
+    time_t start = 0;
+    if(auto iter=startAlerts.find(c.second); iter != startAlerts.end())
+      start = iter->second;
+    else {
+      ; //fmt::print("Could not find '{} {}' in {} alerts\n",
+      //       c.first->getCheckerName(), c.second, startAlerts.size());
+    }
+    arr.push_back(getAgeDesc(start)+": "+c.second);
   }
   s_state["alerts"] = arr;
 }
@@ -100,6 +108,8 @@ void startWebService(sol::table data)
     std::lock_guard<mutex> m(s_lock);
     res.set_content(s_checkerstates.dump(), "application/json");
   });
+
+  svr->set_mount_point("/", "./html");  
 
   
   std::thread t(webserverThread, std::move(svr), data.get_or("address", string("0.0.0.0:8080")));

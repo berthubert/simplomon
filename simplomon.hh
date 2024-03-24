@@ -218,10 +218,11 @@ private:
   int d_maxAgeMinutes = 0;
   unsigned int d_minBytes = 0;
   unsigned int d_minCertDays = 14;
-  std::optional<ComboAddress> d_serverIP, d_localIP;
+  std::optional<ComboAddress> d_serverIP, d_localIP4, d_localIP6;
   std::vector<ComboAddress> d_dns;
 
   std::string d_method;
+  std::string d_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36";
 };
 
 
@@ -285,10 +286,14 @@ void checkLuaTable(sol::table data,
                    const std::set<std::string>& opt = std::set<std::string>());
 
 void startWebService(sol::table data);
-void giveToWebService(const std::set<pair<Checker*, std::string>>&);
+void giveToWebService(const std::set<pair<Checker*, std::string>>&,
+                      const std::map<std::string, time_t>& startAlerts);
 void updateWebService();
 bool checkForWorkingIPv6();
 std::vector<ComboAddress> DNSResolveAt(const DNSName& name, const DNSType& type,
                                        const std::vector<ComboAddress>& servers,
-                                       std::optional<ComboAddress> local = std::optional<ComboAddress>());
+                                       std::optional<ComboAddress> local4 = std::optional<ComboAddress>(),
+                                       std::optional<ComboAddress> local6 = std::optional<ComboAddress>()
+                                       );
 std::vector<ComboAddress> getResolvers();
+std::string getAgeDesc(time_t then);

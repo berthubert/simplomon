@@ -2,18 +2,67 @@
 #include <string>
 #include "sol/sol.hpp"
 #include "sclasses.hh"
+#include <set>
+#include "sqlwriter.hh"
+#include "fmt/core.h"
 
 class Notifier
 {
 public:
+  Notifier(sol::table& data)
+  {
+    d_minMinutes = data.get_or("minMinutes", 0);
+    data["minMinutes"] = sol::lua_nil;
+  }
+  Notifier(bool)
+  {
+  }
+
+  ~Notifier()
+  {
+    fmt::print("A notifier was destroyed\n");
+  }
   virtual void alert(const std::string& message) = 0;
+  void bulkAlert(const std::string& textBody);
+  void bulkDone();
+protected:
+  std::map<std::string, time_t> d_times;
+  bool d_verbose = false;
+private:
+  std::set<std::string> d_reported, d_prevReported;
+  std::set<std::string> d_oldEnough, d_prevOldEnough;
+  int d_minMinutes=0;
 };
 
+class InternalWebNotifier : public Notifier
+{
+public:
+  InternalWebNotifier() : Notifier(false)
+  {
+    //    d_verbose=true;
+  }
+  std::map<std::string, time_t> getTimes()
+  {
+    return d_times;
+  }
+  
+  void alert(const std::string& message) {}
+};
+
+
+class SQLiteWriterNotifier : public Notifier
+{
+public:
+  SQLiteWriterNotifier() : Notifier(false)
+  {}
+
+  void alert(const std::string& message) override;
+};
 
 class PushoverNotifier : public Notifier
 {
 public:
-  PushoverNotifier(const std::string& user, const std::string& apikey);
+  PushoverNotifier(sol::table data);
   void alert(const std::string& message) override;
 private:
   std::string d_user, d_apikey;

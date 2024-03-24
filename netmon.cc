@@ -64,12 +64,13 @@ CheckResult TCPPortClosedChecker::perform()
 // XXX needs switch to select IPv4 or IPv6 or happy eyeballs?
 HTTPSChecker::HTTPSChecker(sol::table data) : Checker(data)
 {
-  checkLuaTable(data, {"url"}, {"maxAgeMinutes", "minBytes", "minCertDays", "serverIP", "method", "localIP", "dns"});
+  checkLuaTable(data, {"url"}, {"maxAgeMinutes", "minBytes", "minCertDays", "serverIP", "method", "localIP4", "localIP6", "dns"});
   d_url = data.get<string>("url");
   d_maxAgeMinutes =data.get_or("maxAgeMinutes", 0);
   d_minCertDays =  data.get_or("minCertDays", 14);
   string serverip= data.get_or("serverIP", string(""));
-  string localip= data.get_or("localIP", string(""));
+  string localip4= data.get_or("localIP4", string(""));
+  string localip6= data.get_or("localIP6", string(""));
   
   d_minBytes =     data.get_or("minBytes", 0);
   d_method =       data.get_or("method", string("GET"));
@@ -83,10 +84,16 @@ HTTPSChecker::HTTPSChecker(sol::table data) : Checker(data)
     d_attributes["serverIP"] = d_serverIP->toStringWithPort();
   }
   
-  if(!localip.empty()) {
-    d_localIP = ComboAddress(localip);
-    d_attributes["localIP"] = d_localIP->toString();
+  if(!localip4.empty()) {
+    d_localIP4 = ComboAddress(localip4);
+    d_attributes["localIP4"] = d_localIP4->toString();
   }
+
+  if(!localip6.empty()) {
+    d_localIP6 = ComboAddress(localip6);
+    d_attributes["localIP6"] = d_localIP6->toString();
+  }
+
   
   if(!dns.empty()) {
     for(const auto& d : dns)
@@ -244,7 +251,7 @@ CheckResult HTTPSChecker::perform()
         minexptime = min(expire, minexptime);
       }
       double days = (minexptime - now)/86400.0;
-      d_results[subject]["tlsMinExpDays"]=days;
+      d_results[subject]["tlsMinExpDays"] = roundDec(days, 1);
       //  fmt::print("'{}': first cert expires in {:.1f} days (lim {})\n", d_url, days,
       //             d_minCertDays);
       if(days < d_minCertDays) {
@@ -464,8 +471,7 @@ CheckResult PINGChecker::perform()
     int ttl = -1;
     HarvestTTL(&msgh, &ttl);
 
-
-    d_results[s.toString()]["msec"] = dt.lapUsec()/1000.0;
+    d_results[s.toString()]["msec"] = roundDec(dt.lapUsec()/1000.0, 1 );
     d_results[s.toString()]["ttl"] = ttl;
     //    fmt::print("Got ping response from {} with id {} and seq {}: {} msec\n",
     //               s.toString(), id, seq, dt.lapUsec()/1000.0);

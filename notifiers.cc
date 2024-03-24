@@ -5,9 +5,11 @@
 
 #include "simplomon.hh"
 
-PushoverNotifier::PushoverNotifier(const std::string& user, const std::string& apikey) : d_user(user), d_apikey(apikey)
+PushoverNotifier::PushoverNotifier(sol::table data) : Notifier(data)
 {
-  
+  checkLuaTable(data, {"user", "apikey"});
+  d_user = data.get<string>("user");
+  d_apikey = data.get<string>("apikey");
 }
 
 void PushoverNotifier::alert(const std::string& msg)
@@ -34,7 +36,7 @@ void PushoverNotifier::alert(const std::string& msg)
 }
 
 
-NtfyNotifier::NtfyNotifier(sol::table data)
+NtfyNotifier::NtfyNotifier(sol::table data) : Notifier(data)
 {
   checkLuaTable(data, {"topic"}, {"auth", "url"});
   d_auth = data.get_or("auth", string(""));
@@ -131,7 +133,7 @@ static void sendAsciiEmailAsync(const std::string& server, const std::string& fr
   sponge(250);
 }
 
-EmailNotifier::EmailNotifier(sol::table data)
+EmailNotifier::EmailNotifier(sol::table data) : Notifier(data)
 {
   checkLuaTable(data, {"from", "to", "server"});
   d_from = data.get<string>("from");
@@ -147,4 +149,84 @@ void EmailNotifier::alert(const std::string& textBody)
                       d_to,
                       "Simplomon notification",
                       textBody);
+}
+
+void Notifier::bulkAlert(const std::string& textBody)
+{
+  if(d_verbose)
+    fmt::print("Got: {}\n", textBody);
+  d_reported.insert(textBody);
+}
+
+void SQLiteWriterNotifier::alert(const std::string& str)
+{
+  if(g_sqlw)
+    g_sqlw->addValue({{"tstamp", time(nullptr)}, {"message", str}}, "notifications");
+}
+
+void Notifier::bulkDone()
+{
+  decltype(d_reported) diff;
+  set_difference(d_reported.begin(), d_reported.end(),
+                 d_prevReported.begin(), d_prevReported.end(),
+                 inserter(diff, diff.begin()));
+    
+  //  fmt::print("got {} NEW results, ", diff.size());
+  for(const auto& d : diff) {
+    d_times[d] = time(nullptr);
+  }
+    
+  diff.clear();
+  set_difference(d_prevReported.begin(), d_prevReported.end(),
+                 d_reported.begin(), d_reported.end(),
+                 inserter(diff, diff.begin()));
+  //  fmt::print("{} alerts were resolved\n", diff.size());
+
+  map<string, time_t> deltime;
+  for(const auto& d : diff) {
+    deltime[d] = d_times[d];
+    d_times.erase(d);
+  }
+
+  d_prevReported = d_reported;
+  d_reported.clear();
+  // in d_times, we now have a list of active alerts, and since how long
+
+  time_t lim = time(nullptr) - d_minMinutes * 60;
+
+  d_oldEnough.clear();
+  for(const auto& r : d_prevReported)
+    if(d_times[r] <= lim)
+      d_oldEnough.insert(r);
+  //  fmt::print("There are {} reports that are old enough (prev {})\n", d_oldEnough.size(),
+  //         d_prevOldEnough.size());
+  
+  diff.clear();
+  set_difference(d_oldEnough.begin(), d_oldEnough.end(),
+                 d_prevOldEnough.begin(), d_prevOldEnough.end(),
+                 inserter(diff, diff.begin()));
+    
+  //  fmt::print("got {} NEW results that are old enough\n", diff.size());
+  for(const auto& str : diff) {
+    string desc = getAgeDesc(d_times[str]);
+    //    fmt::print("Reporting {}\n", str);
+    if(d_minMinutes)
+      this->alert("("+desc+" already) " +str);
+    else
+      this->alert(str);
+  }
+
+  diff.clear();
+  set_difference(d_prevOldEnough.begin(), d_prevOldEnough.end(),
+                 d_oldEnough.begin(), d_oldEnough.end(),
+                 inserter(diff, diff.begin()));
+    
+  for(const auto& str : diff) {
+    string desc = getAgeDesc(deltime[str]);
+    this->alert(fmt::format("🎉 after {}, the following alert is over: {}",
+                            desc,
+                            str));
+  }
+
+  d_prevOldEnough = d_oldEnough;
 }

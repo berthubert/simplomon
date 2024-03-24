@@ -32,16 +32,16 @@ else, except a working [Pushover](https://pushover.net/) or [ntfy](https://ntfy.
 account, or a mailbox. If you need another notifier, do let me know.
 
 ```lua
-pushoverNotifier{user="copy this in from pushover config",
+addPushoverNotifier{user="copy this in from pushover config",
         apikey="copy this in from pushover config"}
 
 -- or ntfy.sh:
--- ntfyNotifier{topic="your_secret_topic"}
+-- addNtfyNotifier{topic="your_secret_topic"}
 -- or point to your own instance, or set the Authorization header through 'auth'
--- ntfyNotifier{topic="your_topic", url="https://ntfy.example.net", auth="Basic dGVzdHVzZXI6ZmFrZXBhc3N3b3Jk"}
+-- addNtfyNotifier{topic="your_topic", url="https://ntfy.example.net", auth="Basic dGVzdHVzZXI6ZmFrZXBhc3N3b3Jk"}
 
 -- or email
---emailNotifier{from="bert@example.com", to="bert@example.com", server="10.0.0.2"}
+-- addEmailNotifier{from="bert@example.com", to="bert@example.com", server="10.0.0.2"}
 ```
 Pushover appears to work really well, and I'd prefer it to ntfy. Email meanwhile is a bit scary, since it might need the very infrastructure it monitors to send out notifications. You might never get that email.
 
@@ -116,6 +116,8 @@ This server supports the following three endpoints:
  * /checker-states: a largish JSON object describing the settings of all checkers & the
  results of the measurements they are doing
 
+If you load / in a webserver you get a somewhat nice dashboard with metrics.
+
 ## Datalogger
 If you add `Logger("stats.sqlite3")`, simplomon will populate a SQLite
 database (in the file './stats.sqlite3') with lots of interesting metadata,
@@ -132,9 +134,7 @@ if they did not lead to notifications.
  * Generic port *open* test
  * HTTP *POST* support
  * HTTP JSON check
- * Build simple status page based on our JSON output
  * Performance tests ("average response time past hour > 100ms")
- * Enable Check config statements to create multiple kinds of alerts
 
 ## Docker
 There is [an image on the Docker hub](https://hub.docker.com/repository/docker/berthubert/simplomon/general) which you can pull (berthubert/simplomon).

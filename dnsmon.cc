@@ -11,7 +11,7 @@
 
 using namespace std;
 
-static DNSMessageReader sendQuery(const vector<ComboAddress>& resolvers, DNSName dn, DNSType dt, std::optional<ComboAddress> local = std::optional<ComboAddress>())
+static DNSMessageReader sendQuery(const vector<ComboAddress>& resolvers, DNSName dn, DNSType dt, std::optional<ComboAddress> local4 = std::optional<ComboAddress>(), std::optional<ComboAddress> local6 = std::optional<ComboAddress>())
 {
   DNSMessageWriter dmw(dn, dt);
   
@@ -22,10 +22,16 @@ static DNSMessageReader sendQuery(const vector<ComboAddress>& resolvers, DNSName
     for(const auto& server: resolvers) {
       try {
 	Socket sock(server.sin4.sin_family, SOCK_DGRAM);
-        if(local) {
-          local->setPort(0);
-          SBind(sock, *local);
+        
+        if(server.sin4.sin_family == AF_INET && local4) {
+          local4->setPort(0);
+          SBind(sock, *local4);
         }
+        if(server.sin4.sin_family == AF_INET6 && local6) {
+          local4->setPort(0);
+          SBind(sock, *local6);
+        }
+
 	SetNonBlocking(sock, true);
 	SConnect(sock, server);
 	SWrite(sock, dmw.serialize());
@@ -99,9 +105,11 @@ vector<ComboAddress> getResolvers()
 
 std::vector<ComboAddress> DNSResolveAt(const DNSName& name, const DNSType& type,
                                        const std::vector<ComboAddress>& servers,
-                                       std::optional<ComboAddress> local)
+                                       std::optional<ComboAddress> local4,
+                                       std::optional<ComboAddress> local6
+                                       )
 {
-  DNSMessageReader dmr = sendQuery(servers, name, type, local);
+  DNSMessageReader dmr = sendQuery(servers, name, type, local4, local6);
   DNSName dn;
   DNSType dt;
   dmr.getQuestion(dn, dt);

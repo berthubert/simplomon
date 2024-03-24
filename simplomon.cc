@@ -121,16 +121,16 @@ try
   }
   fmt::print("IPv6 checks: {}\n", *g_haveIPv6 ? "enabled" : "disabled");
 
-  {
-    set<Checker*> cks;
-    for(const auto &c : g_checkers)
-      cks.insert(c.get());
-    if(cks.size() == 1) {
-      fmt::print("Warning: no checker has a notifier!\n");
-    }
-    else
-      fmt::print("There are {} checkers with {} unique notifiers\n", g_checkers.size(), cks.size());
+
+  set<shared_ptr<Notifier>> allntfs; 
+  for(const auto &c : g_checkers)
+    for(const auto& n : c->notifiers)
+      allntfs.insert(n);
+  if(allntfs.size() == 2) {
+    fmt::print("Warning: no checker has a notifier!\n");
   }
+  else
+    fmt::print("There are {} checkers with {} unique notifiers\n", g_checkers.size(), allntfs.size() - 2);
   
   CheckResultFilter crf(300);
   auto prevFiltered = crf.getFilteredResults(); // should be none
@@ -174,8 +174,10 @@ try
         for(const auto& r2 : reason.second) {
           if(r2.empty())
             continue;
-          if(!c->d_mute)
+          if(!c->d_mute) {
+            //            fmt::print("Reporting {}\n", r2);
             crf.reportResult(c.get(), reason.first, r2);
+          }
           if(g_sqlw) {
             auto attr = c->d_attributes;
             std::vector<std::pair<const char*, SQLiteWriter::var_t>> out;
@@ -209,7 +211,10 @@ try
     // these are the active filtered alerts
     // set<pair<Checker*, std::string>> - the string includes the subject of the result ([ipv4])
     auto filtered = crf.getFilteredResults();
-    fmt::print("Got {} filtered results, ", filtered.size());
+    vector<string> strs;
+    for(const auto& fp : filtered)
+      strs.push_back(fp.second);
+    fmt::print("Got {} filtered results, {}", filtered.size(), strs);
 
 
     // now, not all of these need to go to all notifiers
@@ -225,7 +230,7 @@ try
         n->bulkAlert(f.second);
       }
 
-    for(auto& n : notified)
+    for(auto& n : allntfs)
       n->bulkDone();
 
     giveToWebService(filtered, webNotifier->getTimes()); 

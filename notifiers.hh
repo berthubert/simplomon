@@ -23,15 +23,18 @@ public:
     fmt::print("A notifier was destroyed\n");
   }
   virtual void alert(const std::string& message) = 0;
+  std::string getNotifierName() { return d_notifierName; }
   void bulkAlert(const std::string& textBody);
   void bulkDone();
 protected:
   std::map<std::string, time_t> d_times;
   bool d_verbose = false;
+  std::string d_notifierName;
 private:
   std::set<std::string> d_reported, d_prevReported;
   std::set<std::string> d_oldEnough, d_prevOldEnough;
   int d_minMinutes=0;
+
 };
 
 class InternalWebNotifier : public Notifier
@@ -40,6 +43,7 @@ public:
   InternalWebNotifier() : Notifier(false)
   {
     //    d_verbose=true;
+    d_notifierName="InternalWeb";
   }
   std::map<std::string, time_t> getTimes()
   {
@@ -54,7 +58,9 @@ class SQLiteWriterNotifier : public Notifier
 {
 public:
   SQLiteWriterNotifier() : Notifier(false)
-  {}
+  {
+    d_notifierName="SQLiteWriter";
+  }
 
   void alert(const std::string& message) override;
 };

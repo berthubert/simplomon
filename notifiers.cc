@@ -10,6 +10,7 @@ PushoverNotifier::PushoverNotifier(sol::table data) : Notifier(data)
   checkLuaTable(data, {"user", "apikey"});
   d_user = data.get<string>("user");
   d_apikey = data.get<string>("apikey");
+  d_notifierName="PushOver";
 }
 
 void PushoverNotifier::alert(const std::string& msg)
@@ -31,8 +32,7 @@ void PushoverNotifier::alert(const std::string& msg)
   if(res->status != 200)
     throw std::runtime_error(fmt::format("Post to pushover failed, res = {}", res->status));
 
-  fmt::print("{}\n", res->body);
-                             
+  //  fmt::print("{}\n", res->body);
 }
 
 
@@ -42,6 +42,7 @@ NtfyNotifier::NtfyNotifier(sol::table data) : Notifier(data)
   d_auth = data.get_or("auth", string(""));
   d_url = data.get_or("url", string("https://ntfy.sh"));
   d_topic = data.get<string>("topic");
+  d_notifierName="Ntfy";
 }
 
 void NtfyNotifier::alert(const std::string& msg)
@@ -139,6 +140,7 @@ EmailNotifier::EmailNotifier(sol::table data) : Notifier(data)
   d_from = data.get<string>("from");
   d_to = data.get<string>("to");
   d_server = ComboAddress(data.get<string>("server"), 25);
+  d_notifierName="Email";
 }
 
 void EmailNotifier::alert(const std::string& textBody)
@@ -199,7 +201,7 @@ void Notifier::bulkDone()
     if(d_times[r] <= lim)
       d_oldEnough.insert(r);
   //  fmt::print("There are {} reports that are old enough (prev {})\n", d_oldEnough.size(),
-  //         d_prevOldEnough.size());
+  //             d_prevOldEnough.size());
   
   diff.clear();
   set_difference(d_oldEnough.begin(), d_oldEnough.end(),
@@ -220,7 +222,8 @@ void Notifier::bulkDone()
   set_difference(d_prevOldEnough.begin(), d_prevOldEnough.end(),
                  d_oldEnough.begin(), d_oldEnough.end(),
                  inserter(diff, diff.begin()));
-    
+  //  fmt::print("There are {} results that used to be old enough & are gone now\n",
+  //         diff.size());
   for(const auto& str : diff) {
     string desc = getAgeDesc(deltime[str]);
     this->alert(fmt::format("🎉 after {}, the following alert is over: {}",

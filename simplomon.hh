@@ -50,7 +50,19 @@ public:
     data["failureWindow"] = sol::lua_nil;
     // bake in
     //    fmt::print("Baking in {} notifiers\n", g_notifiers.size());
-    notifiers = g_notifiers;
+    std::optional<vector<shared_ptr<Notifier>>> spec = data["notifiers"];
+    if(spec) {
+      //      fmt::print("Got {} specific notifiers\n", spec->size());
+      notifiers.push_back(g_notifiers[0]);
+      notifiers.push_back(g_notifiers[1]);
+      for(auto& n : *spec)
+        notifiers.push_back(n);
+      data["notifiers"] = sol::lua_nil;
+    }
+    else notifiers = g_notifiers;
+    
+    //    for(const auto& n : notifiers)
+    //  fmt::print("Adding notifier {}\n", n->getNotifierName());
   }
   Checker(const Checker&) = delete;
   void Perform()

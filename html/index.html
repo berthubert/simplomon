@@ -1,0 +1,79 @@
+<!doctype html>
+<html>
+
+<head>
+  <title>Simplomon</title>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self'; img-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'none';" />
+  <link rel='stylesheet' href='style.css'>
+  <link rel="icon" type="image/x-icon" href="simplomon.ico">
+  <script defer src="logic.js"></script>
+  <script defer src="alpine.min.js"></script>
+</head>
+
+<body>
+  <div id="container" x-data="{
+all: {},
+alerts: [],
+version: '?',
+showResults: true
+}" x-init="doPageLoad($data);setInterval(function() { doPageLoad($data);}, 60000);">
+    <header>
+      <h1><a href="./">Simplomon</a></h1>
+    </header>
+    <p></p>
+    <div>
+      <h1>Alerts</h1>
+      <ul>
+        <template x-for="a in alerts">
+          <li x-text="a"></li>
+        </template>
+      </ul>
+      <template x-if="showResults">
+        <template x-for="(cvalue, cindex) in all">
+          <div>
+            <h1 x-text="cindex"></h1>
+            <table>
+              <thead>
+                <tr>
+                  <template x-for="(value, index) in all[cindex].cols">
+                    <th x-text="index"></th>
+                  </template>
+                  <th>Subject</th>
+                  <template x-for="(value, index) in all[cindex].rcols">
+                    <th x-text="index"></th>
+                  </template>
+                </tr>
+              </thead>
+              <template x-for="a in cvalue">
+                <tbody>
+                  <tr>
+                    <template x-for="(value, index) in all[cindex].cols">
+                      <td x-text="a['attr'][index]"></td>
+                    </template>
+                  </tr>
+                  <template x-for="(value, index) in a['results']">
+                    <tr>
+                      <template x-for="(value1, index1) in all[cindex].cols">
+                        <td></td>
+                      </template>
+                      <td x-text="index"></td>
+                      <template x-for="(value2, index2) in all[cindex].rcols">
+                        <td x-text="value[index2]"></td>
+                      </template>
+                    </tr>
+                  </template>
+                </tbody>>
+              </template>
+            </table>
+          </div>
+        </template>
+      </template>
+    </div>
+    <footer>
+      Learn more about Simplomon on <a href="https://github.com/berthubert/simplomon">Microsoft GitHub</a> &mdash; version <span x-text="version"></span>
+    </footer>
+  </div> <!-- id=container -- Alpine div -->
+</body>
+
+</html>

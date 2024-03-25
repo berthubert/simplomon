@@ -20,7 +20,7 @@ public:
 
   ~Notifier()
   {
-    fmt::print("A notifier was destroyed\n");
+    //    fmt::print("A notifier was destroyed\n");
   }
   virtual void alert(const std::string& message) = 0;
   std::string getNotifierName() { return d_notifierName; }

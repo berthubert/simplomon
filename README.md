@@ -113,7 +113,11 @@ If you run `Webserver{address="127.0.0.1:8080"}`, simplomon will launch a
 webserver. If you run Simplomon inside a container, you'll probably have to
 use `0.0.0.0:8080` for things to work.
 
-This server supports the following three endpoints:
+You can also add `user="something", password=...` (password in quotes). 
+
+This server supports the following three endpoints. The first, '/health' is
+always enabled. The dashboard and other JSON endpoints only function if you
+supplied a user name and a password, which will be checked using basic auth.
 
  * /health: generates {"health":"ok"} which appears to make some Docker
    environments happy

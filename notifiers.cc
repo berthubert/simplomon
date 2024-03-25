@@ -67,14 +67,14 @@ void NtfyNotifier::alert(const std::string& msg)
                              
 }
 
-TelegramNotifier::PushoverNotifier(const std::string& user, const std::string& apikey) : d_user(user), d_apikey(apikey)
+TelegramNotifier::TelegramNotifier(const std::string& user, const std::string& apikey) : d_user(user), d_apikey(apikey)
 {
   
 }
 
 void TelegramNotifier::alert(const std::string& msg)
 {
-  httplib::Client cli("https://api.pushover.net");
+  httplib::Client cli("https://api.telegram.org");
   // https://api.pushover.net/1/messages.json
   httplib::Params items = {
     { "user", d_user},
@@ -89,7 +89,7 @@ void TelegramNotifier::alert(const std::string& msg)
     throw std::runtime_error(fmt::format("Could not send post: {}", httplib::to_string(err)));
   }
   if(res->status != 200)
-    throw std::runtime_error(fmt::format("Post to pushover failed, res = {}", res->status));
+    throw std::runtime_error(fmt::format("Post to Telegram failed, res = {}", res->status));
 
   fmt::print("{}\n", res->body);
 }

@@ -54,16 +54,19 @@ curl_dep = dependency(
     ],
 )
 
+# lua_dep = dependency('lua-5.4', static: true)
+lua_lib = static_library('lua')
+lua_dep = declare_dependency(link_with: lua_lib, include_directories: '/usr/local/lib/lua')
 
-foreach name : ['lua-5.3', 'lua53']
-    lua_dep = dependency(name, version: '>=5.3', required: false, static: true)
-    if lua_dep.found()
-        break
-    endif
-endforeach
-if not lua_dep.found()
-    error('Lua 5.3 could not be found')
-endif
+# foreach name : ['lua-5.3', 'lua53']
+#     lua_dep = dependency(name, version: '>=5.3', required: false, static: true)
+#     if lua_dep.found()
+#         break
+#     endif
+# endforeach
+# if not lua_dep.found()
+#     error('Lua 5.3 could not be found')
+# endif
 
 cpphttplib = dependency('cpp-httplib')
 sqlitewriter_dep = dependency('sqlitewriter', static: true)
@@ -74,6 +77,7 @@ simplesockets_dep = dependency('simplesockets', static: true)
 executable('simplomon', 'simplomon.cc', 'notifiers.cc', 'minicurl.cc', 'dnsmon.cc', 'record-types.cc', 'dnsmessages.cc', 'dns-storage.cc', 'netmon.cc', 'luabridge.cc', 'webservice.cc', 'support.cc',
 	dependencies: [json_dep, fmt_dep, cpphttplib, 
 	simplesockets_dep, lua_dep, curl_dep, sqlite_dep, sqlitewriter_dep])
+	# , include_directories: '/usr/local/lib/lua'
 
 
 

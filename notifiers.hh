@@ -84,6 +84,14 @@ private:
   std::string d_auth, d_url, d_topic;
 };
 
+class TelegramNotifier : public Notifier
+{
+public:
+  TelegramNotifier(const std::string& user, const std::string& apikey);
+  void alert(const std::string& message) override;
+private:
+  std::string d_user, d_apikey;
+};
 
 class EmailNotifier : public Notifier
 {

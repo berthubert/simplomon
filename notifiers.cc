@@ -63,7 +63,35 @@ void NtfyNotifier::alert(const std::string& msg)
   if(res->status != 200)
     throw std::runtime_error(fmt::format("Post to ntfy failed, res = {}", res->status));
 
-  //  fmt::print("{}\n", res->body);
+  // fmt::print("{}\n", res->body);
+                             
+}
+
+TelegramNotifier::PushoverNotifier(const std::string& user, const std::string& apikey) : d_user(user), d_apikey(apikey)
+{
+  
+}
+
+void TelegramNotifier::alert(const std::string& msg)
+{
+  httplib::Client cli("https://api.pushover.net");
+  // https://api.pushover.net/1/messages.json
+  httplib::Params items = {
+    { "user", d_user},
+    { "token", d_apikey},
+    { "message", msg}
+  };
+
+  auto res = cli.Post("/1/messages.json", items);
+  if(!res) {
+    auto err = res.error();
+    
+    throw std::runtime_error(fmt::format("Could not send post: {}", httplib::to_string(err)));
+  }
+  if(res->status != 200)
+    throw std::runtime_error(fmt::format("Post to pushover failed, res = {}", res->status));
+
+  fmt::print("{}\n", res->body);
 }
 
 static uint64_t getRandom64()

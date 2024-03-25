@@ -135,6 +135,12 @@ void initLua()
     return make_shared<EmailNotifier>(data);
   });
 
+  g_lua.set_function("telegramNotifier", [&](sol::table data) {
+    g_notifiers.emplace_back(make_shared<TelegramNotifier>(data.get<string>("user"),
+                                                           data.get<string>("apikey")));
+    return *g_notifiers.rbegin();
+  });
+
   g_lua.set_function("setNotifiers", [&](vector<shared_ptr<Notifier>> notifs) {
     g_notifiers.resize(2); // need to keep the system notifiers
     

@@ -30,8 +30,12 @@ void checkLuaTable(sol::table data,
       return;
     }
     
-    if(!mandatory.count(k) && !opt.count(k))
+    if(!mandatory.count(k) && !opt.count(k)) {
+      if(k=="1")
+        throw std::runtime_error("This function requires a table {} as input, for example: f{param=1}");
+
       throw std::runtime_error(fmt::format("Unknown parameter '{}' passed", k));
+    }
   });
     
   if(!mand.empty())

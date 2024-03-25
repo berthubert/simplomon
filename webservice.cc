@@ -85,6 +85,7 @@ static void webserverThread(std::unique_ptr<httplib::Server> svr, string addr)
 
 void startWebService(sol::table data)
 {
+  checkLuaTable(data, {"address"});
   auto svr = make_unique<httplib::Server>();
   
   svr->set_socket_options([](socket_t sock) {

@@ -8,9 +8,11 @@ Key differences compared to existing systems:
  * Pin certain things to how they _should_ be (like NS records)
  * Advanced features by default
    * certificate expiry checking
+   * IPv6 autoconfiguration with explicit tests if you and target have working IPv6
    * DNS synchronization
    * DNSSEC signature freshness checks
    * HTTP redirect checking ('www' -> '', 'http' -> 'https')
+ * "Management mode" - (separate) alerts that only go out of a problem persists
 
 You'd use this if you think "I need to slap some monitoring on this pronto
 and I can't be bothered to setup something difficult that will require
@@ -21,7 +23,8 @@ You'd also use this if you appreciate some of the 'smarter' checks described
 above.
 
 If you want a full featured complicated monitoring system, there is lots of
-choice already, and this isn't it. Also, as it stands simplomon won't scale to thousands of checks.
+choice already, and this isn't it. Also, as it stands simplomon won't scale to
+tens of thousands of checks.
 
 If you miss features that just make sense, do let me know!  Open an
 issue please.
@@ -37,11 +40,13 @@ addPushoverNotifier{user="copy this in from pushover config",
 
 -- or ntfy.sh:
 -- addNtfyNotifier{topic="your_secret_topic"}
+
 -- or point to your own instance, or set the Authorization header through 'auth'
 -- addNtfyNotifier{topic="your_topic", url="https://ntfy.example.net", auth="Basic dGVzdHVzZXI6ZmFrZXBhc3N3b3Jk"}
 
--- or email
--- addEmailNotifier{from="bert@example.com", to="bert@example.com", server="10.0.0.2"}
+-- or email, in "CEO mode": only gets alerts that have been there for an hour
+-- addEmailNotifier{from="bert@example.com", to="bert@example.com",
+-- server="10.0.0.2", minMinutes = 60}
 ```
 Pushover appears to work really well, and I'd prefer it to ntfy. Email meanwhile is a bit scary, since it might need the very infrastructure it monitors to send out notifications. You might never get that email.
 
@@ -53,7 +58,7 @@ dailyChime{utcHour=10} -- 10AM UTC chime confirms monitoring works
 ping{servers={"9.9.9.9", "8.8.8.8"}} -- does our network even work
 
 -- the following checks certificates, and whines if any expire within
--- two weeks
+-- two weeks. If we have IPv6, and there are AAAA records, check that too
 https{url="https://berthub.eu"}
 
 -- save bandwidth, don't fetch the body

@@ -53,8 +53,12 @@ set<pair<Checker*, std::string>> CheckResultFilter::getFilteredResults()
       for(const auto& sp : sp1.second) {
         int count = count_if(sp.second.begin(), sp.second.end(),
                              [&](const auto& r) { return r >= lim; });
-        if(count >= ptr.d_minfailures)
-          ret.emplace(&ptr, ptr.getCheckerName()+": ["+sp1.first+"] " + sp.first);
+        if(count >= ptr.d_minfailures) {
+          string sbit;
+          if(!sp1.first.empty())
+            sbit = "["+sp1.first+"] ";
+          ret.emplace(&ptr, ptr.getCheckerName()+": "+sbit+ sp.first);
+        }
         else if(count)
           fmt::print("Alert '{}' not repeated enough in {} seconds, {} < {}, oldest alert: {}\n",
                      sp.first, ptr.d_failurewin, count, ptr.d_minfailures,
@@ -215,7 +219,6 @@ try
     for(const auto& fp : filtered)
       strs.push_back(fp.second);
     fmt::print("Got {} filtered results, {}", filtered.size(), strs);
-
 
     // now, not all of these need to go to all notifiers
     // idea: tell all notifiers that a new batch is coming

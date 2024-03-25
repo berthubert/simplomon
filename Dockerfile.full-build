@@ -31,6 +31,7 @@ RUN tar cvhf certs.tar /etc/ssl/certs/ca-certificates.crt  /usr/lib/ssl/openssl.
 FROM scratch
 ADD certs.tar /
 COPY --from=builder /project/build/simplomon simplomon
+COPY --from=builder /project/html html
 VOLUME /config
 
 ENTRYPOINT ["/simplomon"]

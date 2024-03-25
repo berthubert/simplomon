@@ -186,6 +186,14 @@ CheckResult HTTPSChecker::perform()
     MiniCurl::certinfo_t certinfo;
     // XXX also do POST
     ComboAddress activeServerIP = ipv6 ? activeServerIP6 : activeServerIP4;
+
+    // if you hand picked an activeServerIP, we're only going to test the right family
+    if(!ipv6 && activeServerIP.sin4.sin_family && activeServerIP.sin4.sin_family != AF_INET)
+      return;
+    if(ipv6 && activeServerIP.sin4.sin_family && activeServerIP.sin4.sin_family != AF_INET6)
+      return;
+    
+    
     string subject = ipv6 ? "ipv6" : "ipv4";
     try {
       ComboAddress li;
@@ -265,6 +273,7 @@ CheckResult HTTPSChecker::perform()
     }
     
   };
+
   doCheck(false);
   if(!aaaas.empty())
     doCheck(true);

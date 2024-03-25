@@ -136,7 +136,8 @@ void initLua()
   });
 
   g_lua.set_function("telegramNotifier", [&](sol::table data) {
-    g_notifiers.emplace_back(make_shared<TelegramNotifier>(data.get<string>("user"),
+    g_notifiers.emplace_back(
+                             make_shared<TelegramNotifier>(data.get<string>("botid"),
                                                            data.get<string>("apikey")));
     return *g_notifiers.rbegin();
   });

@@ -87,10 +87,10 @@ private:
 class TelegramNotifier : public Notifier
 {
 public:
-  TelegramNotifier(const std::string& user, const std::string& apikey);
+  TelegramNotifier(const std::string& bot_id, const std::string& apikey, const std::string& chat_id);
   void alert(const std::string& message) override;
 private:
-  std::string d_user, d_apikey;
+  std::string d_botid, d_apikey, d_chatid;
 };
 
 class EmailNotifier : public Notifier

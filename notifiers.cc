@@ -67,7 +67,9 @@ void NtfyNotifier::alert(const std::string& msg)
                              
 }
 
-TelegramNotifier::TelegramNotifier(const std::string& user, const std::string& apikey) : d_user(user), d_apikey(apikey)
+TelegramNotifier::TelegramNotifier(const std::string& bot_id, 
+                                    const std::string& apikey, 
+                                    const std::string& chat_id) : d_botid(bot_id), d_apikey(apikey), d_chatid(chat_id)
 {
   
 }
@@ -77,12 +79,12 @@ void TelegramNotifier::alert(const std::string& msg)
   httplib::Client cli("https://api.telegram.org");
   // https://api.pushover.net/1/messages.json
   httplib::Params items = {
-    { "user", d_user},
-    { "token", d_apikey},
-    { "message", msg}
+    { "chat_id", d_chatid},
+    { "text", msg}
   };
+  string address = "bot" + d_botid + ":" + d_apikey + "/sendMessage";
 
-  auto res = cli.Post("/1/messages.json", items);
+  auto res = cli.Post(address, items);
   if(!res) {
     auto err = res.error();
     

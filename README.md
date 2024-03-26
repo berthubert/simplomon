@@ -12,7 +12,7 @@ Key differences compared to existing systems:
    * DNS synchronization
    * DNSSEC signature freshness checks
    * HTTP redirect checking ('www' -> '', 'http' -> 'https')
- * "Management mode" - (separate) alerts that only go out of a problem persists
+ * "Management mode" - (separate) alerts that only go out if a problem persists
 
 You'd use this if you think "I need to slap some monitoring on this pronto
 and I can't be bothered to setup something difficult that will require

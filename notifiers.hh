@@ -84,15 +84,6 @@ private:
   std::string d_auth, d_url, d_topic;
 };
 
-class TelegramNotifier : public Notifier
-{
-public:
-  TelegramNotifier(const std::string& bot_id, const std::string& apikey, const std::string& chat_id);
-  void alert(const std::string& message) override;
-private:
-  std::string d_botid, d_apikey, d_chatid;
-};
-
 class EmailNotifier : public Notifier
 {
 public:
@@ -101,4 +92,14 @@ public:
 private:
   std::string d_from, d_to;
   ComboAddress d_server;
+};
+
+/// Telegram Notifier
+class TelegramNotifier : public Notifier
+{
+public:
+  TelegramNotifier(sol::table data);
+  void alert(const std::string& message) override;
+private:
+  std::string d_botid, d_apikey, d_chatid;
 };

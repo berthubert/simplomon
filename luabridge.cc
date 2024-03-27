@@ -135,13 +135,6 @@ void initLua()
     return make_shared<EmailNotifier>(data);
   });
 
-  g_lua.set_function("telegramNotifier", [&](sol::table data) {
-    g_notifiers.emplace_back(
-                             make_shared<TelegramNotifier>(data.get<string>("botid"),
-                                                           data.get<string>("apikey")));
-    return *g_notifiers.rbegin();
-  });
-
   g_lua.set_function("setNotifiers", [&](vector<shared_ptr<Notifier>> notifs) {
     g_notifiers.resize(2); // need to keep the system notifiers
     
@@ -160,4 +153,14 @@ void initLua()
   });
   
   g_lua.set_function("Webserver", startWebService);
+  
+  /// Telegram addition
+  g_lua.set_function("addTelegramNotifier", [&](sol::table data) {
+    g_notifiers.emplace_back(make_shared<TelegramNotifier>(data));
+    return *g_notifiers.rbegin();
+  });
+  g_lua.set_function("createTelegramNotifier", [&](sol::table data) {
+    return make_shared<TelegramNotifier>(data);
+  });
+
 }

@@ -69,7 +69,8 @@ void NtfyNotifier::alert(const std::string& msg)
 
 TelegramNotifier::TelegramNotifier(const std::string& bot_id, 
                                     const std::string& apikey, 
-                                    const std::string& chat_id) : d_botid(bot_id), d_apikey(apikey), d_chatid(chat_id)
+                                    const std::string& chat_id) 
+: d_botid(bot_id), d_apikey(apikey), d_chatid(chat_id)
 {
   
 }
@@ -82,9 +83,11 @@ void TelegramNotifier::alert(const std::string& msg)
     { "chat_id", d_chatid},
     { "text", msg}
   };
-  string address = "bot" + d_botid + ":" + d_apikey + "/sendMessage";
 
-  auto res = cli.Post(address, items);
+  std::string path;
+  path = "bot" + d_botid + ":" + d_apikey + "/sendMessage";
+
+  auto res = cli.Post(path, items);
   if(!res) {
     auto err = res.error();
     

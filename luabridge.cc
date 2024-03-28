@@ -145,6 +145,8 @@ void initLua()
   });
   
   g_lua.set_function("Logger", [&](const std::string& dbname) {
+    if (g_sqlw)
+      throw std::runtime_error("At most one call to Logger is expected");
     g_sqlw = std::make_unique<SQLiteWriter>(dbname);
   });
 
@@ -152,8 +154,13 @@ void initLua()
     g_haveIPv6 = ipv6;
   });
   
-  g_lua.set_function("Webserver", startWebService);
-  
+  g_lua.set_function("Webserver", [&](sol::table data) {
+    if (g_web)
+      throw std::runtime_error("At most one call to Webserver is expected");
+    startWebService(data);
+    g_web = true;
+  });
+
   // Telegram notifier
   g_lua.set_function("addTelegramNotifier", [&](sol::table data) {
     g_notifiers.emplace_back(make_shared<TelegramNotifier>(data));
@@ -162,5 +169,4 @@ void initLua()
   g_lua.set_function("createTelegramNotifier", [&](sol::table data) {
     return make_shared<TelegramNotifier>(data);
   });
-
 }

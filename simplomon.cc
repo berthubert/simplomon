@@ -19,7 +19,7 @@ vector<std::unique_ptr<Checker>> g_checkers;
 vector<std::shared_ptr<Notifier>> g_notifiers;
 std::optional<bool> g_haveIPv6;
 std::unique_ptr<SQLiteWriter> g_sqlw;
-
+bool g_web;
 
 /* the idea
    Every checker can generate multiple alerts.

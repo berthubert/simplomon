@@ -49,7 +49,7 @@ public:
   std::string urlEncode(std::string_view str);
   CURL *d_curl;
   time_t d_filetime=-1;
-  int d_http_code=-1;
+  long d_http_code=-1;
 private:
   std::string d_data;
   static size_t write_callback(char *ptr, size_t size, size_t nmemb, void *userdata);

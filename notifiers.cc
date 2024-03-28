@@ -244,29 +244,27 @@ TelegramNotifier::TelegramNotifier(sol::table data) : Notifier(data)
   d_chatid = data.get<string>("chat_id");
 }
 
-void TelegramNotifier::alert(const std::string& msg)
+void TelegramNotifier::alert(const std::string& message)
 {
   httplib::Client cli("https://api.telegram.org");
 
   httplib::Params items = {
     { "chat_id", d_chatid},
-    { "text", msg}
+    { "text", message}
   };
 
   std::string path;
-
   path = "/bot" + d_botid + ":" + d_apikey + "/sendMessage";
-  fmt::print("\npath = {}\n", path);
 
   auto res = cli.Post(path, items);
   if(!res) {
     auto err = res.error();
     
-    throw std::runtime_error(fmt::format("Could not send post: {}", httplib::to_string(err)));
+    throw std::runtime_error(fmt::format("\nCould not send post: {}", httplib::to_string(err)));
   }
   if(res->status != 200)
     throw std::runtime_error(fmt::format("\nPost to Telegram failed, res = {}\n{}", res->status, res->body));
 
-  fmt::print("{}\n", res->body);
+  // fmt::print("{}\n", res->body);
 }
 

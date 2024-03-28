@@ -154,7 +154,7 @@ void initLua()
   
   g_lua.set_function("Webserver", startWebService);
   
-  /// Telegram addition
+  /// Telegram notifier
   g_lua.set_function("addTelegramNotifier", [&](sol::table data) {
     g_notifiers.emplace_back(make_shared<TelegramNotifier>(data));
     return *g_notifiers.rbegin();

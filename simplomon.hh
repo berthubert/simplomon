@@ -118,7 +118,7 @@ public:
   std::string getDescription() override
   {
     return fmt::format("DNS check, server {}, qname {}, qtype {}, acceptable: {}",
-                       d_nsip.toStringWithPort(), d_qname, toString(d_qtype), d_acceptable);
+                       d_nsip.toStringWithPort(), d_qname, d_qtype, d_acceptable);
   }
 private:
   ComboAddress d_nsip;
@@ -138,7 +138,7 @@ public:
   std::string getDescription() override
   {
     return fmt::format("RRSIG check, server {}, qname {}, qtype {}, minDays: {}",
-                       d_nsip.toStringWithPort(), d_qname, toString(d_qtype), d_minDays);
+                       d_nsip.toStringWithPort(), d_qname, d_qtype, d_minDays);
   }
 
 private:
@@ -303,8 +303,7 @@ public:
   std::string getCheckerName() override { return "smtp"; }
   std::string getDescription() override
   {
-    return fmt::format("SMTP check for {}",
-                       d_server.toStringWithPort());
+    return fmt::format("SMTP check for {}", d_server.toStringWithPort());
   }
 
 private:

@@ -128,7 +128,7 @@ CheckResult DNSChecker::perform()
 
   if((RCode)dmr.dh.rcode != RCode::Noerror) {
     return fmt::format("Got DNS response with RCode {} from {} for question {}|{}",
-                       toString((RCode)dmr.dh.rcode), d_qname, d_nsip.toStringWithPort(), d_qtype);
+                       (RCode)dmr.dh.rcode, d_qname, d_nsip.toStringWithPort(), d_qtype);
   }
   
   std::unique_ptr<RRGen> rr;
@@ -218,7 +218,7 @@ CheckResult DNSSOAChecker::perform()
     
     if((RCode)dmr.dh.rcode != RCode::Noerror) {
       return fmt::format("Got DNS response with RCode {} for question {}|{}",
-                            toString((RCode)dmr.dh.rcode), d_domain, DNSType::SOA);
+                            (RCode)dmr.dh.rcode, d_domain, DNSType::SOA);
     }
   
     std::unique_ptr<RRGen> rr;
@@ -290,7 +290,7 @@ CheckResult RRSIGChecker::perform()
   
   if((RCode)dmr.dh.rcode != RCode::Noerror) {
     return fmt::format("Got DNS response with RCode {} from {} for question {}|{}",
-                       toString((RCode)dmr.dh.rcode), d_qname, d_nsip.toStringWithPort(), d_qtype);
+                       (RCode)dmr.dh.rcode, d_qname, d_nsip.toStringWithPort(), d_qtype);
   }
   
   std::unique_ptr<RRGen> rr;

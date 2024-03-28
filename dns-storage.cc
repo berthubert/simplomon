@@ -224,3 +224,8 @@ std::string DNSName::toString() const
   str << *this;
   return str.str();
 }
+
+std::string format_as(const DNSName& name)
+{
+  return name.toString();
+}

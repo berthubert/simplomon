@@ -5,7 +5,6 @@
 #include "sclasses.hh"
 #include "notifiers.hh"
 #include "sol/sol.hpp"
-#include "nlohmann/json.hpp"
 #include <fmt/chrono.h>
 #include <fmt/ranges.h>
 #include "sqlwriter.hh"

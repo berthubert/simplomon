@@ -1,14 +1,11 @@
 #include "fmt/format.h"
 #include "fmt/ranges.h"
 #include <map>
-#include <curl/curl.h>
 #include "notifiers.hh"
-#include "nlohmann/json.hpp"
 #include <unistd.h>
 #include <time.h>
 #include "minicurl.hh"
 #include <thread>
-#include <mutex>
 #include "simplomon.hh"
 #include "sqlwriter.hh"
 #include "sol/sol.hpp"

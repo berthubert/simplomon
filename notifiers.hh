@@ -1,10 +1,9 @@
 #pragma once
-#include <string>
 #include "sol/sol.hpp"
 #include "sclasses.hh"
+#include <map>
 #include <set>
-#include "sqlwriter.hh"
-#include "fmt/core.h"
+#include <string>
 
 class Notifier
 {
@@ -20,7 +19,6 @@ public:
 
   ~Notifier()
   {
-    //    fmt::print("A notifier was destroyed\n");
   }
   virtual void alert(const std::string& message) = 0;
   std::string getNotifierName() { return d_notifierName; }

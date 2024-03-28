@@ -2,6 +2,7 @@
 #include "httplib.h"
 #include "nlohmann/json.hpp"
 #include "fmt/format.h"
+#include "sqlwriter.hh"
 
 #include "simplomon.hh"
 

@@ -27,8 +27,6 @@
 #include <curl/curl.h>
 #include "comboaddress.hh"
 #include <map>
-#include <atomic>
-#include <stdexcept>
 using std::string;
 // turns out 'CURL' is currently typedef for void which means we can't easily forward declare it
 

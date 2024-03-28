@@ -23,6 +23,7 @@
  */
 
 #include "minicurl.hh"
+#include <atomic>
 #include <curl/curl.h>
 #include <stdexcept>
 #include <vector>

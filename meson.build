@@ -54,11 +54,6 @@ curl_dep = dependency(
     ],
 )
 
-# macos
-# lua_dep = dependency('lua-5.4', static: true)
-# lua_lib = static_library('lua')
-# lua_dep = declare_dependency(link_with: lua_lib, include_directories: '/usr/local/lib/lua')
-
 foreach name : ['lua-5.3', 'lua53']
     lua_dep = dependency(name, version: '>=5.3', required: false, static: true)
     if lua_dep.found()
@@ -78,9 +73,6 @@ simplesockets_dep = dependency('simplesockets', static: true)
 executable('simplomon', 'simplomon.cc', 'notifiers.cc', 'minicurl.cc', 'dnsmon.cc', 'record-types.cc', 'dnsmessages.cc', 'dns-storage.cc', 'netmon.cc', 'luabridge.cc', 'webservice.cc', 'support.cc',
 	dependencies: [json_dep, fmt_dep, cpphttplib, 
 	simplesockets_dep, lua_dep, curl_dep, sqlite_dep, sqlitewriter_dep])
-	# , include_directories: '/usr/local/lib/lua'
-
-
 
 executable('testrunner', 'testrunner.cc', 'notifiers.cc', 'minicurl.cc', 'dnsmon.cc', 'record-types.cc', 'dnsmessages.cc', 'dns-storage.cc', 'netmon.cc', 'luabridge.cc', 'webservice.cc', 'support.cc',
 	dependencies: [doctest_dep, curl_dep, json_dep, fmt_dep, cpphttplib, sqlite_dep,

@@ -63,7 +63,7 @@ void NtfyNotifier::alert(const std::string& msg)
   if(res->status != 200)
     throw std::runtime_error(fmt::format("Post to ntfy failed, res = {}", res->status));
 
-  // fmt::print("{}\n", res->body);
+  //  fmt::print("{}\n", res->body);
                              
 }
 

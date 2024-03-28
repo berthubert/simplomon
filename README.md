@@ -43,7 +43,7 @@ addPushoverNotifier{user="copy this in from pushover config",
 -- or point to your own instance, or set the Authorization header through 'auth'
 -- addNtfyNotifier{topic="your_topic", url="https://ntfy.example.net", auth="Basic dGVzdHVzZXI6ZmFrZXBhc3N3b3Jk"}
 
--- or create a Telegram bot, and direct messages to a chat you and the bot have access to.
+-- or create a Telegram bot, and direct messages to a chat both you and the bot have access to.
 -- addTelegramNotifier{bot_id="your bot id",
                        apikey="your api key",
                        chat_id="the chat id"}

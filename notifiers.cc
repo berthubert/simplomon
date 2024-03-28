@@ -163,7 +163,7 @@ void Notifier::bulkAlert(const std::string& textBody)
 void SQLiteWriterNotifier::alert(const std::string& str)
 {
   if(g_sqlw)
-    g_sqlw->addValue({{"tstamp", time(nullptr)}, {"message", str}}, "notifications");
+    g_sqlw->addValue({{"tstamp", (int64_t)time(nullptr)}, {"message", str}}, "notifications");
 }
 
 void Notifier::bulkDone()

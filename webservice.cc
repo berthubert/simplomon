@@ -8,10 +8,10 @@
 static std::mutex s_lock;
 static nlohmann::json s_state;
 static nlohmann::json s_checkerstates;
-void giveToWebService(const std::set<pair<Checker*, std::string>>& cs,
+void giveToWebService(const std::set<std::pair<Checker*, std::string>>& cs,
                       const std::map<std::string, time_t>& startAlerts)
 {
-  std::lock_guard<mutex> m(s_lock);
+  std::lock_guard<std::mutex> m(s_lock);
   s_state = nlohmann::json::object();
 
   auto arr = nlohmann::json::array();
@@ -47,7 +47,7 @@ static nlohmann::json toJson(const SQLiteWriter::var_t& var)
 
 void updateWebService()
 {
-  std::lock_guard<mutex> m(s_lock);
+  std::lock_guard<std::mutex> m(s_lock);
   s_checkerstates = nlohmann::json::object();
 
   for(auto &c : g_checkers) {
@@ -76,11 +76,11 @@ void updateWebService()
   }
 }
 
-static void webserverThread(std::unique_ptr<httplib::Server> svr, string addr)
+static void webserverThread(std::unique_ptr<httplib::Server> svr, std::string addr)
 {
   ComboAddress ca(addr, 8080);
   if(svr->listen(ca.toString(), ntohs(ca.sin4.sin_port))) {
-    cout<<"Error launching server: "<<strerror(errno)<<endl;
+    std::cout<<"Error launching server: "<<strerror(errno)<<std::endl;
     exit(EXIT_FAILURE);
   }
 }
@@ -114,19 +114,19 @@ static int B64Decode(const std::string& src, std::string& dst)
   return -1;
 }
 
-static std::optional<string> g_webpassword;
-static std::optional<string> g_webuser;
+static std::optional<std::string> g_webpassword;
+static std::optional<std::string> g_webuser;
 
 static bool checkAuth(const httplib::Request& req, httplib::Response &res)
 {
-  string user;
-  string password;
-  string dec;
-  string::size_type pos;
+  std::string user;
+  std::string password;
+  std::string dec;
+  std::string::size_type pos;
 
   
   //  Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ== 
-  string auth = req.get_header_value("Authorization");
+  std::string auth = req.get_header_value("Authorization");
   if(auth.find("Basic ") != 0)
     goto fail;
 
@@ -138,7 +138,7 @@ static bool checkAuth(const httplib::Request& req, httplib::Response &res)
     goto fail;
 
   pos = dec.find(':');
-  if(pos == string::npos)
+  if(pos == std::string::npos)
     goto fail;
   user = dec.substr(0, pos);
   password = dec.substr(pos+1);
@@ -167,7 +167,7 @@ static bool checkAuth(const httplib::Request& req, httplib::Response &res)
 void startWebService(sol::table data)
 {
   checkLuaTable(data, {"address"}, { "password", "user"});
-  auto svr = make_unique<httplib::Server>();
+  auto svr = std::make_unique<httplib::Server>();
   g_webpassword = data["password"];
   g_webuser = data["user"]; // std::optional
 
@@ -186,7 +186,7 @@ void startWebService(sol::table data)
   svr->Get("/state", [](const auto& req, auto& res) {
     if(!checkAuth(req, res))
       return;
-    std::lock_guard<mutex> m(s_lock);
+    std::lock_guard<std::mutex> m(s_lock);
     res.set_content(s_state.dump(), "application/json");
   });
 
@@ -194,14 +194,14 @@ void startWebService(sol::table data)
     if(!checkAuth(req, res))
       return;
 
-    std::lock_guard<mutex> m(s_lock);
+    std::lock_guard<std::mutex> m(s_lock);
     res.set_content(s_checkerstates.dump(), "application/json");
   });
 
   svr->set_mount_point("/", "./html");  
 
   
-  std::thread t(webserverThread, std::move(svr), data.get_or("address", string("0.0.0.0:8080")));
+  std::thread t(webserverThread, std::move(svr), data.get_or("address", std::string("0.0.0.0:8080")));
   t.detach();
 }
 

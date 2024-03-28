@@ -9,8 +9,8 @@
 PushoverNotifier::PushoverNotifier(sol::table data) : Notifier(data)
 {
   checkLuaTable(data, {"user", "apikey"});
-  d_user = data.get<string>("user");
-  d_apikey = data.get<string>("apikey");
+  d_user = data.get<std::string>("user");
+  d_apikey = data.get<std::string>("apikey");
   d_notifierName="PushOver";
 }
 
@@ -40,9 +40,9 @@ void PushoverNotifier::alert(const std::string& msg)
 NtfyNotifier::NtfyNotifier(sol::table data) : Notifier(data)
 {
   checkLuaTable(data, {"topic"}, {"auth", "url"});
-  d_auth = data.get_or("auth", string(""));
-  d_url = data.get_or("url", string("https://ntfy.sh"));
-  d_topic = data.get<string>("topic");
+  d_auth = data.get_or("auth", std::string(""));
+  d_url = data.get_or("url", std::string("https://ntfy.sh"));
+  d_topic = data.get<std::string>("topic");
   d_notifierName="Ntfy";
 }
 
@@ -78,7 +78,7 @@ static uint64_t getRandom64()
 static void sendAsciiEmailAsync(const std::string& server, const std::string& from, const std::string& to, const std::string& subject, const std::string& textBody)
 {
   const char* allowed="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_+-.@";
-  if(from.find_first_not_of(allowed) != string::npos || to.find_first_not_of(allowed) != string::npos) {
+  if(from.find_first_not_of(allowed) != std::string::npos || to.find_first_not_of(allowed) != std::string::npos) {
     throw std::runtime_error("Illegal character in from or to address");
   }
 
@@ -87,7 +87,7 @@ static void sendAsciiEmailAsync(const std::string& server, const std::string& fr
 
   SocketCommunicator sc(s);
   sc.connect(mailserver);
-  string line;
+  std::string line;
   auto sponge= [&](int expected) {
     while(sc.getLine(line)) {
       if(line.size() < 4)
@@ -121,7 +121,7 @@ static void sendAsciiEmailAsync(const std::string& server, const std::string& fr
   sc.writen(fmt::format("Date: {:%a, %d %b %Y %H:%M:%S %z (%Z)}\r\n", fmt::localtime(time(0))));
   sc.writen("\r\n");
 
-  string withCrlf;
+  std::string withCrlf;
   for(auto iter = textBody.cbegin(); iter != textBody.cend(); ++iter) {
     if(*iter=='\n' && (iter == textBody.cbegin() || *std::prev(iter)!='\r'))
       withCrlf.append(1, '\r');
@@ -139,9 +139,9 @@ static void sendAsciiEmailAsync(const std::string& server, const std::string& fr
 EmailNotifier::EmailNotifier(sol::table data) : Notifier(data)
 {
   checkLuaTable(data, {"from", "to", "server"});
-  d_from = data.get<string>("from");
-  d_to = data.get<string>("to");
-  d_server = ComboAddress(data.get<string>("server"), 25);
+  d_from = data.get<std::string>("from");
+  d_to = data.get<std::string>("to");
+  d_server = ComboAddress(data.get<std::string>("server"), 25);
   d_notifierName="Email";
 }
 
@@ -186,7 +186,7 @@ void Notifier::bulkDone()
                  inserter(diff, diff.begin()));
   //  fmt::print("{} alerts were resolved\n", diff.size());
 
-  map<string, time_t> deltime;
+  std::map<std::string, time_t> deltime;
   for(const auto& d : diff) {
     deltime[d] = d_times[d];
     d_times.erase(d);
@@ -212,7 +212,7 @@ void Notifier::bulkDone()
     
   //  fmt::print("got {} NEW results that are old enough\n", diff.size());
   for(const auto& str : diff) {
-    string desc = getAgeDesc(d_times[str]);
+    std::string desc = getAgeDesc(d_times[str]);
     //    fmt::print("Reporting {}\n", str);
     if(d_minMinutes)
       this->alert("("+desc+" already) " +str);
@@ -227,7 +227,7 @@ void Notifier::bulkDone()
   //  fmt::print("There are {} results that used to be old enough & are gone now\n",
   //         diff.size());
   for(const auto& str : diff) {
-    string desc = getAgeDesc(deltime[str]);
+    std::string desc = getAgeDesc(deltime[str]);
     this->alert(fmt::format("🎉 after {}, the following alert is over: {}",
                             desc,
                             str));
@@ -240,9 +240,9 @@ void Notifier::bulkDone()
 TelegramNotifier::TelegramNotifier(sol::table data) : Notifier(data) 
 { 
   checkLuaTable(data, {"bot_id", "apikey", "chat_id"});
-  d_botid = data.get<string>("bot_id");
-  d_apikey = data.get<string>("apikey");
-  d_chatid = data.get<string>("chat_id");
+  d_botid = data.get<std::string>("bot_id");
+  d_apikey = data.get<std::string>("apikey");
+  d_chatid = data.get<std::string>("chat_id");
 }
 
 void TelegramNotifier::alert(const std::string& message)

@@ -1,6 +1,8 @@
 #pragma once
+#include <map>
 #include <mutex>
 #include <string>
+#include <vector>
 #include "record-types.hh"
 #include "sclasses.hh"
 #include "notifiers.hh"
@@ -8,7 +10,6 @@
 #include <fmt/chrono.h>
 #include <fmt/ranges.h>
 #include "sqlwriter.hh"
-using namespace std;
 
 extern sol::state g_lua;
 
@@ -27,7 +28,7 @@ struct CheckResult
     if(reason.empty())
       d_reasons.clear();
   }
-  std::map<std::string,vector<std::string>> d_reasons;
+  std::map<std::string,std::vector<std::string>> d_reasons;
 };
 
 extern std::vector<std::shared_ptr<Notifier>> g_notifiers;
@@ -49,7 +50,7 @@ public:
     data["failureWindow"] = sol::lua_nil;
     // bake in
     //    fmt::print("Baking in {} notifiers\n", g_notifiers.size());
-    std::optional<vector<shared_ptr<Notifier>>> spec = data["notifiers"];
+    std::optional<std::vector<std::shared_ptr<Notifier>>> spec = data["notifiers"];
     if(spec) {
       //      fmt::print("Got {} specific notifiers\n", spec->size());
       notifiers.push_back(g_notifiers[0]);
@@ -97,9 +98,9 @@ struct CheckResultFilter
     reportResult(source, subject, cr, time(nullptr));
   }
 
-  std::set<pair<Checker*, std::string>> getFilteredResults();
+  std::set<std::pair<Checker*, std::string>> getFilteredResults();
 
-  std::map<Checker*, std::map<std::string, map<std::string, std::set<time_t>> >> d_reports;
+  std::map<Checker*, std::map<std::string, std::map<std::string, std::set<time_t>> >> d_reports;
   
   int d_maxseconds;
 };
@@ -154,7 +155,7 @@ public:
   std::string getCheckerName() override { return "dnssoa"; }
   std::string getDescription() override
   {
-    std::vector<string> servers;
+    std::vector<std::string> servers;
     for(const auto& s : d_servers) servers.push_back(s.toStringWithPort());
     return fmt::format("DNS SOA check, servers {}, domain {}",
                        servers, d_domain.toString());
@@ -176,7 +177,7 @@ public:
   std::string getCheckerName() override { return "tcpportclosed"; }
   std::string getDescription() override
   {
-    std::vector<string> servers;
+    std::vector<std::string> servers;
     for(const auto& s : d_servers) servers.push_back(s.toString());
     return fmt::format("TCP closed check, servers {}, ports {}",
                        servers, d_ports);
@@ -197,7 +198,7 @@ public:
   std::string getCheckerName() override { return "ping"; }
   std::string getDescription() override
   {
-    std::vector<string> servers;
+    std::vector<std::string> servers;
     for(const auto& s : d_servers) servers.push_back(s.toString());
     return fmt::format("PING check, servers {}", servers);
 
@@ -297,7 +298,7 @@ void checkLuaTable(sol::table data,
                    const std::set<std::string>& opt = std::set<std::string>());
 
 void startWebService(sol::table data);
-void giveToWebService(const std::set<pair<Checker*, std::string>>&,
+void giveToWebService(const std::set<std::pair<Checker*, std::string>>&,
                       const std::map<std::string, time_t>& startAlerts);
 void updateWebService();
 bool checkForWorkingIPv6();

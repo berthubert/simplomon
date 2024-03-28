@@ -111,7 +111,7 @@ void MiniCurl::setupURL(const std::string& str, const ComboAddress* rem, const C
   // should be a setting
   curl_easy_setopt(d_curl, CURLOPT_FOLLOWLOCATION, 1L);
   /* only allow HTTP and HTTPS */
-  curl_easy_setopt(d_curl, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
+  curl_easy_setopt(d_curl, CURLOPT_PROTOCOLS_STR, "http,https");
   curl_easy_setopt(d_curl, CURLOPT_SSL_VERIFYPEER, true);
   curl_easy_setopt(d_curl, CURLOPT_SSL_VERIFYHOST, true);
   //  curl_easy_setopt(d_curl, CURLOPT_FAILONERROR, true);

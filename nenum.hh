@@ -1,10 +1,9 @@
 #pragma once
 #include <cstdint>
-#include <iostream>
+#include <cstring>
+#include <ostream>
 #include <stdexcept>
-#include <algorithm>
-#include <array>
-#include <string.h>
+#include <utility>
 
 #define SMARTENUMSTART(x) static constexpr std::pair<x, const char*> enumtypemap##x[]= {
 #define SENUM(x,a1) { x::a1, #a1},

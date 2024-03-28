@@ -12,7 +12,7 @@ Key differences compared to existing systems:
    * DNS synchronization
    * DNSSEC signature freshness checks
    * HTTP redirect checking ('www' -> '', 'http' -> 'https')
- * "Management mode" - (separate) alerts that only go out of a problem persists
+ * "Management mode" - (separate) alerts that only go out if a problem persists
 
 You'd use this if you think "I need to slap some monitoring on this pronto
 and I can't be bothered to setup something difficult that will require
@@ -31,8 +31,7 @@ issue please.
 
 ## Sample configuration (without Docker)
 Note that the configuration below is completely functional, you need nothing
-else, except a working [Pushover](https://pushover.net/) or [ntfy](https://ntfy.sh/)
-account, or a mailbox. If you need another notifier, do let me know.
+else, except a working [Pushover](https://pushover.net/), [ntfy](https://ntfy.sh/) or [Telegram](https://core.telegram.org/api) account, or a mailbox. If you need another notifier, do let me know.
 
 ```lua
 addPushoverNotifier{user="copy this in from pushover config",
@@ -43,6 +42,11 @@ addPushoverNotifier{user="copy this in from pushover config",
 
 -- or point to your own instance, or set the Authorization header through 'auth'
 -- addNtfyNotifier{topic="your_topic", url="https://ntfy.example.net", auth="Basic dGVzdHVzZXI6ZmFrZXBhc3N3b3Jk"}
+
+-- or create a Telegram bot, and direct messages to a chat both you and the bot have access to.
+-- addTelegramNotifier{bot_id="your bot id",
+                       apikey="your api key",
+                       chat_id="the chat id"}
 
 -- or email, in "CEO mode": only gets alerts that have been there for an hour
 -- addEmailNotifier{from="bert@example.com", to="bert@example.com",

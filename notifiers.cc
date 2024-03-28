@@ -64,6 +64,7 @@ void NtfyNotifier::alert(const std::string& msg)
     throw std::runtime_error(fmt::format("Post to ntfy failed, res = {}", res->status));
 
   //  fmt::print("{}\n", res->body);
+                             
 }
 
 static uint64_t getRandom64()
@@ -233,3 +234,37 @@ void Notifier::bulkDone()
 
   d_prevOldEnough = d_oldEnough;
 }
+
+
+TelegramNotifier::TelegramNotifier(sol::table data) : Notifier(data) 
+{ 
+  checkLuaTable(data, {"bot_id", "apikey", "chat_id"});
+  d_botid = data.get<string>("bot_id");
+  d_apikey = data.get<string>("apikey");
+  d_chatid = data.get<string>("chat_id");
+}
+
+void TelegramNotifier::alert(const std::string& message)
+{
+  httplib::Client cli("https://api.telegram.org");
+
+  httplib::Params items = {
+    { "chat_id", d_chatid},
+    { "text", message}
+  };
+
+  std::string path;
+  path = "/bot" + d_botid + ":" + d_apikey + "/sendMessage";
+
+  auto res = cli.Post(path, items);
+  if(!res) {
+    auto err = res.error();
+    
+    throw std::runtime_error(fmt::format("\nCould not send post: {}", httplib::to_string(err)));
+  }
+  if(res->status != 200)
+    throw std::runtime_error(fmt::format("\nPost to Telegram failed, res = {}\n{}", res->status, res->body));
+
+  // fmt::print("{}\n", res->body);
+}
+

@@ -53,7 +53,6 @@ public:
   void alert(const std::string& message) {}
 };
 
-
 class SQLiteWriterNotifier : public Notifier
 {
 public:
@@ -74,7 +73,6 @@ private:
   std::string d_user, d_apikey;
 };
 
-
 class NtfyNotifier : public Notifier
 {
 public:
@@ -84,7 +82,6 @@ private:
   std::string d_auth, d_url, d_topic;
 };
 
-
 class EmailNotifier : public Notifier
 {
 public:
@@ -93,4 +90,13 @@ public:
 private:
   std::string d_from, d_to;
   ComboAddress d_server;
+};
+
+class TelegramNotifier : public Notifier
+{
+public:
+  TelegramNotifier(sol::table data);
+  void alert(const std::string& message) override;
+private:
+  std::string d_botid, d_apikey, d_chatid;
 };

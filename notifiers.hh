@@ -17,11 +17,7 @@ public:
   Notifier(bool)
   {
   }
-
-  ~Notifier()
-  {
-    //    fmt::print("A notifier was destroyed\n");
-  }
+  virtual ~Notifier() = default;
   virtual void alert(const std::string& message) = 0;
   std::string getNotifierName() { return d_notifierName; }
   void bulkAlert(const std::string& textBody);

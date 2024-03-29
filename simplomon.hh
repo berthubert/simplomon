@@ -65,6 +65,7 @@ public:
     //  fmt::print("Adding notifier {}\n", n->getNotifierName());
   }
   Checker(const Checker&) = delete;
+  virtual ~Checker() = default;
   void Perform()
   {
     d_reasons = this->perform();

@@ -64,7 +64,7 @@ CheckResult TCPPortClosedChecker::perform()
 // XXX needs switch to select IPv4 or IPv6 or happy eyeballs?
 HTTPSChecker::HTTPSChecker(sol::table data) : Checker(data)
 {
-  checkLuaTable(data, {"url"}, {"maxAgeMinutes", "minBytes", "minCertDays", "serverIP", "method", "localIP4", "localIP6", "dns"});
+  checkLuaTable(data, {"url"}, {"maxAgeMinutes", "minBytes", "minCertDays", "serverIP", "method", "localIP4", "localIP6", "dns", "regex"});
   d_url = data.get<string>("url");
   d_maxAgeMinutes =data.get_or("maxAgeMinutes", 0);
   d_minCertDays =  data.get_or("minCertDays", 14);
@@ -75,6 +75,7 @@ HTTPSChecker::HTTPSChecker(sol::table data) : Checker(data)
   d_minBytes =     data.get_or("minBytes", 0);
   d_method =       data.get_or("method", string("GET"));
   vector<string> dns = data.get_or("dns", vector<string>());
+  d_regexStr =     data.get_or("regex", string(""));
 
   d_attributes["url"] = d_url;
   d_attributes["method"] = d_method;
@@ -103,6 +104,8 @@ HTTPSChecker::HTTPSChecker(sol::table data) : Checker(data)
   
   if (d_method != "GET" && d_method != "HEAD")
     throw runtime_error(fmt::format("only support HTTP HEAD & GET methods, not '{}'", d_method));
+
+  d_regex = std::regex(d_regexStr);
 }
 
 double roundDec(double val, int dec)
@@ -236,6 +239,11 @@ CheckResult HTTPSChecker::perform()
       d_results[subject]["bodySize"] = (int64_t)body.size();
       if(body.size() < d_minBytes) {
         cr.d_reasons[subject].push_back(fmt::format("URL {} was available{}, but did not deliver at least {} bytes of data", d_url, serverIP, d_minBytes));
+        return;
+      }
+      
+      if(!std::regex_search(body, d_regex)) {
+        cr.d_reasons[subject].push_back(fmt::format("URL {} was available{}, but the response did not contain a match for the regular expression '{}'", d_url, serverIP, d_regexStr));
         return;
       }
       

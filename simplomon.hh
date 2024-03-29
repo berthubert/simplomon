@@ -1,5 +1,6 @@
 #pragma once
 #include <mutex>
+#include <regex>
 #include <string>
 #include "record-types.hh"
 #include "sclasses.hh"
@@ -232,6 +233,8 @@ private:
   unsigned int d_minCertDays = 14;
   std::optional<ComboAddress> d_serverIP, d_localIP4, d_localIP6;
   std::vector<ComboAddress> d_dns;
+  std::string d_regexStr;
+  std::regex d_regex;
 
   std::string d_method;
   std::string d_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36";

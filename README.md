@@ -71,6 +71,9 @@ https{url="https://galmon.eu/", method="HEAD"}
 -- This complains if that URL is older than 20 minutes
 https{url="https://berthub.eu/nlelec/dutch-stack.svg", maxAgeMinutes=20}
 
+-- check if the response body contains a regex match
+https{url="https://example.org", regex="[Ee]xample [Dd]omain"}
+
 -- check if a specific server IP is serving correctly
 https{url="https://berthub.eu", serverIP="86.82.68.237"}
 https{url="https://berthub.eu", serverIP="2001:41f0:782d::2"}

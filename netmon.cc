@@ -437,6 +437,12 @@ PINGChecker::PINGChecker(sol::table data) : Checker(data, 2)
     d_attributes["localIP"] = d_localIP->toString();
   }
 
+  try {
+    Socket sock(AF_INET, SOCK_DGRAM, IPPROTO_ICMP);
+  }
+  catch(...) {
+    throw std::runtime_error("Not allowed to send ping packets, you may need to do: sysctl net.ipv4.ping_group_range='0 2147483647'");
+  }
 }
 
 CheckResult PINGChecker::perform()
@@ -444,7 +450,7 @@ CheckResult PINGChecker::perform()
   d_results.clear();
   CheckResult ret;
   for(const auto& s : d_servers) {
-    Socket sock(s.sin4.sin_family, SOCK_DGRAM, IPPROTO_ICMP);
+    Socket sock(s.sin4.sin_family, SOCK_DGRAM, (s.sin4.sin_family == AF_INET) ? (int)IPPROTO_ICMP : (int)IPPROTO_ICMPV6);
     if(d_localIP) {
       SBind(sock, *d_localIP);
     }

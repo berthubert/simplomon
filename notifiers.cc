@@ -73,85 +73,65 @@ static uint64_t getRandom64()
   return ((uint64_t)rd() << 32) | rd();
 }
 
-
-static void sendAsciiEmailAsync(const std::string& server, const std::string& from, const std::string& to, const std::string& subject, const std::string& textBody)
-{
-  const char* allowed="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_+-.@";
-  if(from.find_first_not_of(allowed) != string::npos || to.find_first_not_of(allowed) != string::npos) {
-    throw std::runtime_error("Illegal character in from or to address");
-  }
-
-  ComboAddress mailserver(server, 25);
-  Socket s(mailserver.sin4.sin_family, SOCK_STREAM);
-
-  SocketCommunicator sc(s);
-  sc.connect(mailserver);
-  string line;
-  auto sponge= [&](int expected) {
-    while(sc.getLine(line)) {
-      if(line.size() < 4)
-        throw std::runtime_error("Invalid response from SMTP server: '"+line+"'");
-      if(stoi(line.substr(0,3)) != expected)
-        throw std::runtime_error("Unexpected response from SMTP server: '"+line+"'");
-      if(line.at(3) == ' ')
-        break;
-    }
-  };
-
-  sponge(220);
-  sc.writen("EHLO dan\r\n");
-  sponge(250);
-
-  sc.writen("MAIL From:<"+from+">\r\n");
-  sponge(250);
-
-  sc.writen("RCPT To:<"+to+">\r\n");
-  sponge(250);
-
-  sc.writen("DATA\r\n");
-  sponge(354);
-  sc.writen("From: "+from+"\r\n");
-  sc.writen("To: "+to+"\r\n");
-  sc.writen("Subject: "+subject+"\r\n");
-
-  sc.writen(fmt::format("Message-Id: <{}@simplomon.hostname>\r\n", getRandom64()));
-  
-  //Date: Thu, 28 Dec 2023 14:31:37 +0100 (CET)
-  sc.writen(fmt::format("Date: {:%a, %d %b %Y %H:%M:%S %z (%Z)}\r\n", fmt::localtime(time(0))));
-  sc.writen("\r\n");
-
-  string withCrlf;
-  for(auto iter = textBody.cbegin(); iter != textBody.cend(); ++iter) {
-    if(*iter=='\n' && (iter == textBody.cbegin() || *std::prev(iter)!='\r'))
-      withCrlf.append(1, '\r');
-    if(*iter=='.' && (iter != textBody.cbegin() && *std::prev(iter)=='\n'))
-      withCrlf.append(1, '.');
-        
-    withCrlf.append(1, *iter);
-  }
-  
-  sc.writen(withCrlf);
-  sc.writen("\r\n.\r\n");
-  sponge(250);
-}
-
-EmailNotifier::EmailNotifier(sol::table data) : Notifier(data)
+EmailNotifier::EmailNotifier(sol::table data) : Notifier(data), d_url(curl_url(), curl_url_cleanup)
 {
   checkLuaTable(data, {"from", "to", "server"});
   d_from = data.get<string>("from");
   d_to = data.get<string>("to");
-  d_server = ComboAddress(data.get<string>("server"), 25);
+
+  const char* allowed="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_+-.@";
+  if(d_from.find_first_not_of(allowed) != string::npos || d_to.find_first_not_of(allowed) != string::npos)
+    throw std::runtime_error("Illegal character in from or to address");
+
+  // 'server' can be "192.0.2.3" or "example.org" or "smtp://192.0.2.3" or "smtps://user:pass@example.org:465" or ...
+  std::string server = data.get<string>("server");
+
+  char* scheme;
+  if(curl_url_set(d_url.get(), CURLUPART_URL, server.c_str(), CURLU_DEFAULT_SCHEME))
+    throw std::runtime_error("EmailNotifier could not parse server field");
+  if(curl_url_get(d_url.get(), CURLUPART_SCHEME, &scheme, 0))
+    throw std::runtime_error("curl_url_get failed");
+  if(strcmp(scheme, "smtps") != 0)
+    curl_url_set(d_url.get(), CURLUPART_SCHEME, "smtp", 0);
+  curl_free(scheme);
+
   d_notifierName="Email";
 }
 
 void EmailNotifier::alert(const std::string& textBody)
 {
-  // sendAsciiEmailAsync(const std::string& server, const std::string& from, const std::string& to, const std::string& subject, const std::string& textBody)
-  sendAsciiEmailAsync(d_server.toStringWithPort(),
-                      d_from,
-                      d_to,
-                      "Simplomon notification",
-                      textBody);
+  std::string message;
+  auto msg = std::back_inserter(message);
+
+  fmt::format_to(msg, "From: {}\r\n", d_from);
+  fmt::format_to(msg, "To: {}\r\n", d_to);
+  fmt::format_to(msg, "Subject: {}\r\n", "Simplomon notification");
+  fmt::format_to(msg, "Message-Id: <{}@simplomon.hostname>\r\n", getRandom64());
+  fmt::format_to(msg, "Date: {:%a, %d %b %Y %H:%M:%S %z (%Z)}\r\n", fmt::localtime(time(nullptr)));
+  fmt::format_to(msg, "\r\n");
+  fmt::format_to(msg, "{}\r\n", textBody);
+
+  MiniCurl mc;
+  char errorBuffer[CURL_ERROR_SIZE] = {};
+  FILE *messageFile = fmemopen(message.data(), message.size(), "r");
+  curl_slist* rcpt = curl_slist_append(nullptr, d_to.c_str());
+
+  bool failure = (messageFile == nullptr) || (rcpt == nullptr) ||
+    curl_easy_setopt(mc.d_curl, CURLOPT_ERRORBUFFER, errorBuffer) ||
+    curl_easy_setopt(mc.d_curl, CURLOPT_CURLU, d_url.get()) ||
+    curl_easy_setopt(mc.d_curl, CURLOPT_MAIL_FROM, d_from.c_str()) ||
+    curl_easy_setopt(mc.d_curl, CURLOPT_MAIL_RCPT, rcpt) ||
+    curl_easy_setopt(mc.d_curl, CURLOPT_UPLOAD, 1L) ||
+    curl_easy_setopt(mc.d_curl, CURLOPT_READDATA, messageFile) ||
+    curl_easy_perform(mc.d_curl);
+
+  if(rcpt != nullptr)
+    curl_slist_free_all(rcpt);
+  if(messageFile != nullptr)
+    fclose(messageFile);
+
+  if(failure)
+    throw std::runtime_error(fmt::format("Could not send email notification ({})", errorBuffer));
 }
 
 void Notifier::bulkAlert(const std::string& textBody)

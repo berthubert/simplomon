@@ -51,6 +51,10 @@ addPushoverNotifier{user="copy this in from pushover config",
 -- or email, in "CEO mode": only gets alerts that have been there for an hour
 -- addEmailNotifier{from="bert@example.com", to="bert@example.com",
 -- server="10.0.0.2", minMinutes = 60}
+
+-- or perhaps send all alerts through some external SMTPS server
+-- addEmailNotifier{from="bert@example.com", to="bert@example.com",
+-- server="smtps://bert:changeme@smtp.eu-west.example.org:465"}
 ```
 Pushover appears to work really well, and I'd prefer it to ntfy. Email meanwhile is a bit scary, since it might need the very infrastructure it monitors to send out notifications. You might never get that email.
 

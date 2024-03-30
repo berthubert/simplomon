@@ -5,6 +5,7 @@
 #include <set>
 #include "sqlwriter.hh"
 #include "fmt/core.h"
+#include "minicurl.hh"
 
 class Notifier
 {
@@ -89,7 +90,7 @@ public:
   void alert(const std::string& message) override;
 private:
   std::string d_from, d_to;
-  ComboAddress d_server;
+  std::unique_ptr<CURLU, void (*)(CURLU*)> d_url;
 };
 
 class TelegramNotifier : public Notifier

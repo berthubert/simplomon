@@ -48,9 +48,9 @@ class DailyChimeChecker : public Checker
 public:
   DailyChimeChecker(sol::table data) : Checker(data)
   {
-    checkLuaTable(data, {"utcHour"});
+    checkLuaTable(data, {"utcHour"}, {"instance"});
     d_utcHour = data["utcHour"];
-    
+    d_instance = data.get_or("instance", getHostName());
   }
 
   CheckResult perform()
@@ -59,7 +59,7 @@ public:
     now -= d_utcHour * 3600;
     struct tm tm;
     gmtime_r(&now, &tm);
-    return fmt::format("Your daily chime for {:%Y-%m-%d}. This is not an alert.", tm);
+    return fmt::format("Your daily chime from {} for {:%Y-%m-%d}. This is not an alert.", d_instance, tm);
   }
 
   std::string getCheckerName() override { return "chime";  }
@@ -68,9 +68,17 @@ public:
   {
     return fmt::format("Daily chime at {}:00 UTC", d_utcHour);
   }
+
+  static std::string getHostName()
+  {
+    char tmp[HOST_NAME_MAX]={};
+    gethostname(tmp, sizeof(tmp) -1);
+    return tmp;
+  }
   
 private:
   int d_utcHour;
+  string d_instance;
 };
 
 
@@ -105,6 +113,11 @@ void initLua()
   g_lua.set_function("ping", [&](sol::table data) {
     g_checkers.emplace_back(make_unique<PINGChecker>(data));
   });
+  g_lua.set_function("prometheus", [&](sol::table data) {
+    g_checkers.emplace_back(make_unique<PrometheusChecker>(data));
+  });
+
+
   /*
   g_lua.set_function("smtp", [&](sol::table data) {
     g_checkers.emplace_back(make_unique<SMTPChecker>(data));

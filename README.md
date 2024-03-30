@@ -27,7 +27,18 @@ choice already, and this isn't it. Also, as it stands simplomon won't scale to
 tens of thousands of checks.
 
 If you miss features that just make sense, do let me know!  Open an
-issue please.
+issue [here](https://github.com/berthubert/simplomon/issues) please.
+
+# Mission statement 
+Right now Simplomon is simple and robust. History shows it is a struggle to keep a project lean. Simple to use however does not imply a lack of powerful features however. But it does mean:
+
+ * Rejecting anything that means it takes more than 5 minutes for a novice to setup simplomon
+ * Keeping the most common usecases available as one-liners
+ * Not falling for [premature abstraction](https://mastodon.social/@programming_quotes/112167535911869120) or premature optimization
+ * Making sure that any more advanced use of simplomon "grows on you", and does not get in the way of rapidly getting the first benefits
+ * Adding new native tests to the code should remain as simple as possible, so we can make sure we have a useful check for your service out of the box, without having to resort to scripting/custom code.
+
+As an example, more generic monitoring/logging solutions [can also monitor DNS records](https://utcc.utoronto.ca/~cks/space/blog/sysadmin/PrometheusAutomatingDNSChecks) through regular expressions that have to be just so. In simplomon, we'd rather have a test that out of the box checks common things erally well. In other words, we want to break out custom and dynamic rules only for very rare or niche tests.
 
 ## Sample configuration (without Docker)
 Note that the configuration below is completely functional, you need nothing

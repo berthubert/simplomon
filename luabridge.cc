@@ -113,11 +113,11 @@ void initLua()
   g_lua.set_function("ping", [&](sol::table data) {
     g_checkers.emplace_back(make_unique<PINGChecker>(data));
   });
-  /*
-  g_lua.set_function("prometheus", [&](sol::table data) {
+  
+  g_lua.set_function("prometheusExp", [&](sol::table data) {
     g_checkers.emplace_back(make_unique<PrometheusChecker>(data));
   });
-  */
+  
 
   /*
   g_lua.set_function("smtp", [&](sol::table data) {

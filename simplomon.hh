@@ -9,6 +9,7 @@
 #include <fmt/chrono.h>
 #include <fmt/ranges.h>
 #include "sqlwriter.hh"
+#include "peglib.h"
 using namespace std;
 
 extern sol::state g_lua;
@@ -238,6 +239,25 @@ private:
 };
 
 
+class PrometheusParser
+{
+public:
+  PrometheusParser();
+  void parse(const std::string& cont);
+
+  typedef std::map<std::string, std::map<std::map<std::string,std::string>, double>> prom_t;
+  prom_t d_prom;
+private:
+  peg::parser d_parser;
+};
+
+struct PromCheck
+{
+  virtual void doCheck(CheckResult& cr, const PrometheusParser::prom_t & prom, const std::string& id,
+                       std::map<std::string, std::map<std::string, SQLiteWriter::var_t>>& results) = 0;
+};
+
+
 class PrometheusChecker : public Checker
 {
 public:
@@ -246,13 +266,14 @@ public:
   std::string getCheckerName() override { return "prometheus"; }
   std::string getDescription() override
   {
-    return fmt::format("Prometheus check, IP {}",
-                       d_serverIP.toStringWithPort());
+    return fmt::format("Prometheus check, url {}",
+                       d_url);
   }
 
 private:
-  ComboAddress d_serverIP;
-
+  std::string d_url;
+  PrometheusParser d_parser;
+  std::vector<std::unique_ptr<PromCheck>> d_checkers;
 };
 
 

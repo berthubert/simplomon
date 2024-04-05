@@ -30,9 +30,9 @@ If you miss features that just make sense, do let me know!  Open an
 issue [here](https://github.com/berthubert/simplomon/issues) please.
 
 # Mission statement 
-Right now Simplomon is simple and robust. History shows it is a struggle to keep a project lean. Simple to use however does not imply a lack of powerful features. But it does mean:
+Right now Simplomon is simple and robust. History shows it is a struggle to keep a project lean, but we're going to give it a try. Simple to use however does not imply a lack of powerful features. But it does mean:
 
- * Rejecting anything that means it takes more than 5 minutes for a novice to setup simplomon
+ * Rejecting anything that means it takes more than 5 minutes for a novice to benefit from simplomon
  * Keeping the most common usecases available as one-liners
  * Not falling for [premature abstraction](https://mastodon.social/@programming_quotes/112167535911869120) or premature optimization
  * Making sure that any more advanced use of simplomon "grows on you", and does not get in the way of rapidly getting the first benefits
@@ -271,4 +271,6 @@ meson compile -C build/
 # Inspiration
 
  * [Uptime Kuma](https://github.com/louislam/uptime-kuma) - single Docker
-   image.
+   image, open source
+ * [statuscake](https://www.statuscake.com/)
+ * [Uptime Robot](https://uptimerobot.com/)

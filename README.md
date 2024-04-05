@@ -7,11 +7,13 @@ Key differences compared to existing systems:
  * Also check what should not work (ports that should be closed)
  * Pin certain things to how they _should_ be (like NS records)
  * Advanced features by default
-   * certificate expiry checking
+   * certificate expiry checking, full chain HTTPs check
    * IPv6 autoconfiguration with explicit tests if you and target have working IPv6
    * DNS synchronization
    * DNSSEC signature freshness checks
    * HTTP redirect checking ('www' -> '', 'http' -> 'https')
+   * Prometheus node exporter integration for disk space, bandwidth,
+   security checks
  * "Management mode" - (separate) alerts that only go out if a problem persists
 
 You'd use this if you think "I need to slap some monitoring on this pronto
@@ -118,10 +120,19 @@ httpredir{fromUrl="http://berthub.eu", toUrl="https://berthub.eu/"}
 -- And the www redirects?
 httpredir{fromUrl="http://www.berthub.eu", toUrl="https://berthub.eu/"}
 httpredir{fromUrl="https://www.berthub.eu", toUrl="https://berthub.eu/"}
+
+
+prometheusExp{url="http://10.0.0.1:9100/metrics", 
+checks={{kind="DiskFree", mountpoint="/", gbMin=10},
+        {kind="AptPending"},  -- pending security updates
+        {kind="Bandwidth", device="enp2s0.9", minMbit=0.1, maxMbit=50},
+        {kind="Bandwidth", device="ppp0", minMbit=0.4}
+}}
 ```
 
 Save this as 'simplomon.conf' and start './simplomon' and you should be in
 business.
+
 
 ## Webserver
 If you run `Webserver{address="127.0.0.1:8080"}`, simplomon will launch a

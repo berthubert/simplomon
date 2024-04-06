@@ -104,7 +104,8 @@ HTTPSChecker::HTTPSChecker(sol::table data) : Checker(data)
   
   if (d_method != "GET" && d_method != "HEAD")
     throw runtime_error(fmt::format("only support HTTP HEAD & GET methods, not '{}'", d_method));
-
+  if(!d_regexStr.empty())
+    d_attributes["regex"] = d_regexStr;
   d_regex = std::regex(d_regexStr);
 }
 
@@ -242,7 +243,7 @@ CheckResult HTTPSChecker::perform()
         return;
       }
       
-      if(!std::regex_search(body, d_regex)) {
+      if(!d_regexStr.empty() && !std::regex_search(body, d_regex)) {
         cr.d_reasons[subject].push_back(fmt::format("URL {} was available{}, but the response did not contain a match for the regular expression '{}'", d_url, serverIP, d_regexStr));
         return;
       }

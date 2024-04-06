@@ -1,6 +1,8 @@
 #include "simplomon.hh"
 #include "minicurl.hh"
 
+using namespace std;
+
 /*
 # HELP apt_upgrades_pending Apt packages pending updates by origin.
 # TYPE apt_upgrades_pending gauge

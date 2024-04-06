@@ -1,6 +1,8 @@
 #include "simplomon.hh"
 #include <fstream>
 
+using namespace std;
+
 static DNSMessageReader sendQuery(const vector<ComboAddress>& resolvers, DNSName dn, DNSType dt, std::optional<ComboAddress> local4 = std::optional<ComboAddress>(), std::optional<ComboAddress> local6 = std::optional<ComboAddress>())
 {
   DNSMessageWriter dmw(dn, dt);

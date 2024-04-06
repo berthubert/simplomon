@@ -5,6 +5,8 @@
 #include <openssl/bio.h>
 #include <openssl/evp.h>
 
+using namespace std;
+
 static std::mutex s_lock;
 static nlohmann::json s_state;
 static nlohmann::json s_checkerstates;

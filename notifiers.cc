@@ -2,8 +2,8 @@
 #include "httplib.h"
 #include "nlohmann/json.hpp"
 #include "fmt/format.h"
-
 #include "simplomon.hh"
+using namespace std;
 
 PushoverNotifier::PushoverNotifier(sol::table data) : Notifier(data)
 {

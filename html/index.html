@@ -59,7 +59,7 @@ showResults: true
                       </template>
                       <td x-text="index"></td>
                       <template x-for="(value2, index2) in all[cindex].rcols">
-                        <td x-text="value[index2]"></td>
+                        <td x-text="cleanUpVal(value[index2])"></td>
                       </template>
                     </tr>
                   </template>

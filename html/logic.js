@@ -28,6 +28,13 @@ async function doPageLoad(f) {
         const data = await response2.json();
         f.alerts = data.alerts
     }
-
 }
 
+
+function cleanUpVal(x)
+{
+    if (typeof x === 'number') {
+        return parseFloat(x.toFixed(2));
+    }
+    return x;
+}

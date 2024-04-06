@@ -42,6 +42,17 @@ Right now Simplomon is simple and robust. History shows it is a struggle to keep
 
 As an example, more generic monitoring/logging solutions [can also monitor DNS records](https://utcc.utoronto.ca/~cks/space/blog/sysadmin/PrometheusAutomatingDNSChecks) through regular expressions that have to be just so. In simplomon, we'd rather have a test that out of the box checks common things really well. In other words, we want to break out custom and dynamic rules only for very rare or niche tests.
 
+# Thanks to
+Many thanks are due to early adopters & contributors:
+
+ * Wander Nauta
+ * Reinoud van Leeuwen
+ * Roel van der Made
+ * Job Snijders
+ * Axel Roest
+ * GitHub user 'Calamarain'
+ * Wouter Schoot
+
 ## Sample configuration (without Docker)
 Note that the configuration below is completely functional, you need nothing
 else, except a working [Pushover](https://pushover.net/), [ntfy](https://ntfy.sh/) or [Telegram](https://core.telegram.org/api) account, or a mailbox. If you need another notifier, do let me know.

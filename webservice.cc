@@ -2,8 +2,6 @@
 #include <nlohmann/json.hpp>
 #include "httplib.h"
 #include <mutex>
-#include <openssl/bio.h>
-#include <openssl/evp.h>
 
 using namespace std;
 
@@ -87,79 +85,23 @@ static void webserverThread(std::unique_ptr<httplib::Server> svr, string addr)
   }
 }
 
-
-static int B64Decode(const std::string& src, std::string& dst)
-{
-  if (src.empty() ) {
-    dst.clear();
-    return 0;
-  }
-  int dlen = ( src.length() * 6 + 7 ) / 8 ;
-  ssize_t olen = 0;
-  dst.resize(dlen);
-  BIO *bio, *b64;
-  bio = BIO_new(BIO_s_mem());
-  BIO_write(bio, src.c_str(), src.length());
-  b64 = BIO_new(BIO_f_base64());
-  bio = BIO_push(b64, bio);
-  BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL);
-  olen = BIO_read(b64, &dst.at(0), dlen);
-  if ((olen == 0 || olen == -1) && BIO_should_retry(bio)) {
-    BIO_free_all(bio);
-    throw std::runtime_error("BIO_read failed to read all data from memory buffer");
-  }
-  BIO_free_all(bio);
-  if (olen > 0) {
-    dst.resize(olen);
-    return 0;
-  }
-  return -1;
-}
-
 static std::optional<string> g_webpassword;
 static std::optional<string> g_webuser;
 
 static bool checkAuth(const httplib::Request& req, httplib::Response &res)
 {
-  string user;
-  string password;
-  string dec;
-  string::size_type pos;
+  if (g_webuser && !g_webuser->empty() && g_webpassword && !g_webpassword->empty()) {
+    const auto& [expectHeader, expectValue] = httplib::make_basic_authentication_header(*g_webuser, *g_webpassword);
 
-  
-  //  Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ== 
-  string auth = req.get_header_value("Authorization");
-  if(auth.find("Basic ") != 0)
-    goto fail;
+    const std::string actualValue = req.get_header_value(expectHeader);
 
-  if(!g_webpassword || g_webpassword->empty())
-    goto fail;
-
-  
-  if(B64Decode(auth.substr(6), dec))
-    goto fail;
-
-  pos = dec.find(':');
-  if(pos == string::npos)
-    goto fail;
-  user = dec.substr(0, pos);
-  password = dec.substr(pos+1);
-
-  if(g_webuser && !g_webuser->empty() && *g_webuser != user) {
-    fmt::print("User specified '{}' did not match configured user '{}'\n",
-               user, *g_webuser);
-    goto fail;
+    if (actualValue == expectValue) {
+      return true;
+    } else if (!actualValue.empty()) {
+      fmt::println("Unknown username or wrong password");
+    }
   }
 
-  if(g_webpassword != password) {
-    fmt::print("Wrong password");
-    goto fail;
-  }
-  
-  //  fmt::print("User '{}', password '{}'\n", user, password);
-  return true;
-  
- fail:;
   res.set_header("WWW-Authenticate", "Basic realm=\"Simplomon\"");
   res.status = 401;
   return false;

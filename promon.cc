@@ -33,14 +33,18 @@ PrometheusParser::PrometheusParser()
   //   node_filesystem_avail_bytes{device="/dev/nvme0n1p2",fstype="ext4",mountpoint="/"} 8.650682368e+10
   //   xyz 3.14
   auto ok = d_parser.load_grammar(R"(
-ROOT          <- ( ( ~COMMENTLINE / VLINE ) '\n')*
-COMMENTLINE   <- '#' (!'\n' .)* 
-VLINE         <- KWORD SELS? ' ' VALUE 
-KWORD         <- [a-zA-Z0-9_]+ 
-SELS          <- '{' KVPAIR (',' KVPAIR)* '}' 
-KVPAIR        <-  KWORD '=' '"' KVAL '"' 
-KVAL          <-  (!'"' .)*  
-VALUE         <-  [0-9.+e-]+ 
+ROOT          <- ( ( ~COMMENTLINE / VLINE )? '\n')*
+COMMENTLINE   <- '#' (!'\n' .)*
+VLINE         <- METRIC LABELS? VALUE ( ~TIMESTAMP )?
+METRIC        <- < [a-zA-Z_:][a-zA-Z0-9_:]* >
+LABELS        <- '{' LABELPAIR (',' LABELPAIR)* ','? '}'
+LABELPAIR     <- LABEL '=' < '"' LABELVALUE '"' >
+LABEL         <- < [a-zA-Z_][a-zA-Z0-9_]* >
+LABELVALUE    <- ('\\\\' / '\\"' / (!["] .))*
+VALUE         <- < [+-]? ([0-9.+e-]+ / 'inf'i / 'nan'i) >
+TIMESTAMP     <- < [0-9-]+ >
+
+%whitespace   <-  [ \t]*
 )" );
   
   if(!ok)
@@ -50,15 +54,19 @@ VALUE         <-  [0-9.+e-]+
     return atof(&vs.token()[0]);
   };
 
-  d_parser["KVPAIR"] = [](const peg::SemanticValues &vs) {
+  d_parser["LABELPAIR"] = [](const peg::SemanticValues &vs) {
     return std::make_pair(any_cast<string>(vs[0]), any_cast<string>(vs[1]));
   };
 
-  d_parser["KWORD"] = [](const peg::SemanticValues &vs) {
+  d_parser["LABEL"] = [](const peg::SemanticValues &vs) {
     return vs.token_to_string();
   };
 
-  d_parser["KVAL"] = [](const peg::SemanticValues &vs) {
+  d_parser["METRIC"] = [](const peg::SemanticValues &vs) {
+      return vs.token_to_string();
+  };
+
+  d_parser["LABELVALUE"] = [](const peg::SemanticValues &vs) {
     return vs.token_to_string();
   };
 
@@ -74,7 +82,7 @@ VALUE         <-  [0-9.+e-]+
     return ret;
   };
 
-  d_parser["SELS"] = [](const peg::SemanticValues &vs) {
+  d_parser["LABELS"] = [](const peg::SemanticValues &vs) {
     map<string,string> sels;
     for(const auto& a : vs) {
       sels.insert(any_cast<pair<string,string>>(a));

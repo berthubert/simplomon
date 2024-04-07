@@ -104,6 +104,10 @@ TIMESTAMP     <- < [0-9-]+ >
   */
 }
 
+PrometheusParser::PrometheusParser(const peg::Log &log) : PrometheusParser() {
+  d_parser.set_logger(log);
+}
+
 void PrometheusParser::parse(const std::string& cont)
 {
   d_prom.clear();

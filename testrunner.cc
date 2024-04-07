@@ -23,7 +23,7 @@ TEST_CASE("alert filter test") {
 }
 
 TEST_CASE("Prometheus parser") {
-  PrometheusParser parser;
+  PrometheusParser parser([](auto...){});
   using prom_t = PrometheusParser::prom_t;
 
   SUBCASE("Empty input") {

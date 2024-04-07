@@ -246,6 +246,7 @@ class PrometheusParser
 {
 public:
   PrometheusParser();
+  explicit PrometheusParser(const peg::Log& log);
   void parse(const std::string& cont);
 
   typedef std::map<std::string, std::map<std::map<std::string,std::string>, double>> prom_t;

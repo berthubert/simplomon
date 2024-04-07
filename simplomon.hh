@@ -256,6 +256,7 @@ private:
 
 struct PromCheck
 {
+  virtual ~PromCheck() = default;
   virtual void doCheck(CheckResult& cr, const PrometheusParser::prom_t & prom, const std::string& id,
                        std::map<std::string, std::map<std::string, SQLiteWriter::var_t>>& results) = 0;
 };

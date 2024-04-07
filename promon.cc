@@ -33,7 +33,7 @@ PrometheusParser::PrometheusParser()
   //   node_filesystem_avail_bytes{device="/dev/nvme0n1p2",fstype="ext4",mountpoint="/"} 8.650682368e+10
   //   xyz 3.14
   auto ok = d_parser.load_grammar(R"(
-ROOT          <- ( ( ~COMMENTLINE / VLINE ) '\n')+
+ROOT          <- ( ( ~COMMENTLINE / VLINE ) '\n')*
 COMMENTLINE   <- '#' (!'\n' .)* 
 VLINE         <- KWORD SELS? ' ' VALUE 
 KWORD         <- [a-zA-Z0-9_]+ 

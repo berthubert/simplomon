@@ -21,3 +21,8 @@ TEST_CASE("alert filter test") {
   CHECK(1 == 1);
 }
 
+TEST_CASE("Prometheus parser") {
+  PrometheusParser parser;
+
+  parser.parse("");
+}

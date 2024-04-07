@@ -9,6 +9,7 @@
 #include "minicurl.hh"
 #include <thread>
 #include <mutex>
+#include <signal.h>
 #include "simplomon.hh"
 #include "sqlwriter.hh"
 #include "sol/sol.hpp"
@@ -86,6 +87,7 @@ set<pair<Checker*, std::string>> CheckResultFilter::getFilteredResults()
 int main(int argc, char **argv)
 try
 {
+  signal(SIGPIPE, SIG_IGN); // every TCP application needs this
   initLua();
   g_notifiers.emplace_back(make_shared<SQLiteWriterNotifier>());
   auto webNotifier = make_shared<InternalWebNotifier>();
@@ -164,6 +166,7 @@ try
         }
       }
       catch(exception& e) {
+        fmt::print("Got an exception during check: {}\n", e.what());
         reasons = {{"", {"Exception caught: "+string(e.what())}}};
       }
       catch(...) {

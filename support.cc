@@ -20,7 +20,7 @@ static DNSMessageReader sendQuery(const vector<ComboAddress>& resolvers, DNSName
           SBind(sock, *local4);
         }
         if(server.sin4.sin_family == AF_INET6 && local6) {
-          local4->setPort(0);
+          local6->setPort(0);
           SBind(sock, *local6);
         }
 

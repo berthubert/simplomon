@@ -119,12 +119,14 @@ void initLua()
   });
   
 
-  /*
   g_lua.set_function("smtp", [&](sol::table data) {
     g_checkers.emplace_back(make_unique<SMTPChecker>(data));
   });
-  */
-  
+
+  g_lua.set_function("imap", [&](sol::table data) {
+    g_checkers.emplace_back(make_unique<IMAPChecker>(data));
+  });
+
   g_lua.set_function("addPushoverNotifier", [&](sol::table data) {
     g_notifiers.emplace_back(make_shared<PushoverNotifier>(data));
     return *g_notifiers.rbegin();

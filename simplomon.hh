@@ -310,6 +310,28 @@ public:
 
 private:
   ComboAddress d_server;
+  DNSName d_servername;
+  std::string d_from, d_to;
+  unsigned int d_minCertDays = 14;
+};
+
+class IMAPChecker : public Checker
+{
+public:
+  IMAPChecker(sol::table data);
+  CheckResult perform() override;
+  std::string getCheckerName() override { return "imap"; }
+  std::string getDescription() override
+  {
+    return fmt::format("IMAP check for {}",
+                       d_server.toStringWithPort());
+  }
+
+private:
+  ComboAddress d_server;
+  DNSName d_servername;
+  std::string d_user, d_password;
+  unsigned int d_minCertDays = 14;
 };
 
 

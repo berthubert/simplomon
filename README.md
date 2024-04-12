@@ -150,10 +150,12 @@ checks={{kind="DiskFree", mountpoint="/", gbMin=10},
 }}
 
 -- mail delivery tests
-smtp{server="10.0.0.2", servername="ziggo.berthub.eu", from="bert@hubertnet.nl", to="bert@hubertnet.nl",
-	minCertDays=7}
+smtp{server="10.0.0.2", servername="ziggo.berthub.eu", from="bert@hubertnet.nl", 
+	to="bert@hubertnet.nl",	minCertDays=7}
+
 -- will complain if no 'simplomon test message' messages arrive:
-imap{server="10.0.0.2", servername="ziggo.berthub.eu", user="username", password="secret"}
+imap{server="10.0.0.2", servername="ziggo.berthub.eu", user="username", 
+	password="secret"}
 ```
 
 Save this as 'simplomon.conf' and start './simplomon' and you should be in

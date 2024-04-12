@@ -1,12 +1,12 @@
 #include "simplomon.hh"
 #include <openssl/ssl.h>
 #include <openssl/err.h>
+#include <openssl/x509v3.h>
 #include "peglib.h"
 #include "nonblocker.hh"
 #include <mutex>
 
 using namespace std;
-
 
 bool getLine(FILE* fp, std::string& line)
 {

@@ -170,8 +170,12 @@ void startWebService(sol::table data)
 {
   checkLuaTable(data, {"address"}, { "password", "user"});
   auto svr = make_unique<httplib::Server>();
-  g_webpassword = data["password"];
-  g_webuser = data["user"]; // std::optional
+  sol::optional<string> val = data["password"], val2 = data["user"];
+  
+  if(val != sol::nullopt)
+    g_webpassword = *val;
+  if(val2 != sol::nullopt)
+    g_webuser = *val2;
 
   svr->set_socket_options([](socket_t sock) {
     int yes = 1;

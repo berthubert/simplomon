@@ -218,7 +218,7 @@ CheckResult HTTPSChecker::perform()
       double httpMsec = dt.lapUsec()/1000.0;
       d_results[subject]["http-msec"]= roundDec(httpMsec, 1);
       d_results[subject]["msec"] = roundDec((ipv6 ? dnsMsec6 : dnsMsec4) + httpMsec, 1);
-      d_results[subject]["http-code"] = mc.d_http_code;
+      d_results[subject]["http-code"] = (int32_t)mc.d_http_code;
       
       if(mc.d_http_code >= 400) {
         cr.d_reasons[subject].push_back(fmt::format("Content {} generated a {} status code{}", d_url, mc.d_http_code, serverIP));

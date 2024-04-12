@@ -159,7 +159,7 @@ try
             out.push_back({"subject", r.first});
             for(const auto& res : r.second)
               out.push_back({res.first.c_str(), res.second});
-            out.push_back({"tstamp", time(nullptr)});
+            out.push_back({"tstamp", (int64_t)time(nullptr)});
             if(g_sqlw)
               g_sqlw->addValue(out, c->getCheckerName());
           }
@@ -193,7 +193,7 @@ try
             out.push_back({"checker", c->getCheckerName()});
             out.push_back({"subject", reason.first});
             out.push_back({"reason", r2});
-            out.push_back({"tstamp", time(nullptr)});
+            out.push_back({"tstamp", (int64_t)time(nullptr)});
             g_sqlw->addValue(out, "reports");
           }
         }

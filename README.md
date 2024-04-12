@@ -12,8 +12,10 @@ Key differences compared to existing systems:
    * DNS synchronization
    * DNSSEC signature freshness checks
    * HTTP redirect checking ('www' -> '', 'http' -> 'https')
-   * Prometheus node exporter integration for disk space, bandwidth,
-   security checks
+   * Prometheus node exporter integration for disk space, bandwidth, security tests
+   * SMTP STARTTLS certificate checking, IMAP certificate checking
+     * Email delivery test. IMAP check checks if SMTP check
+       managed to deliver email to the configured mailbox
  * "Management mode" - (separate) alerts that only go out if a problem persists
 
 You'd use this if you think "I need to slap some monitoring on this pronto
@@ -139,13 +141,19 @@ httpredir{fromUrl="http://berthub.eu", toUrl="https://berthub.eu/"}
 httpredir{fromUrl="http://www.berthub.eu", toUrl="https://berthub.eu/"}
 httpredir{fromUrl="https://www.berthub.eu", toUrl="https://berthub.eu/"}
 
-
+-- Use the prometheus node exporter:
 prometheusExp{url="http://10.0.0.1:9100/metrics", 
 checks={{kind="DiskFree", mountpoint="/", gbMin=10},
         {kind="AptPending"},  -- pending security updates
         {kind="Bandwidth", device="enp2s0.9", minMbit=0.1, maxMbit=50},
         {kind="Bandwidth", device="ppp0", minMbit=0.4}
 }}
+
+-- mail delivery tests
+smtp{server="10.0.0.2", servername="ziggo.berthub.eu", from="bert@hubertnet.nl", to="bert@hubertnet.nl",
+	minCertDays=7}
+-- will complain if no 'simplomon test message' messages arrive:
+imap{server="10.0.0.2", servername="ziggo.berthub.eu", user="username", password="secret"}
 ```
 
 Save this as 'simplomon.conf' and start './simplomon' and you should be in
@@ -181,9 +189,6 @@ if they did not lead to notifications.
 
 ## Todo
 
- * SMTP checker
- * IMAP checker
-   * Both with actual certificate checks, including STARTTLS to get to them
  * Generic port *open* test
  * HTTP *POST* support
  * HTTP JSON check

@@ -168,7 +168,7 @@ supplied a user name and a password, which will be checked using basic auth.
 If you load / in a webserver you get a somewhat nice dashboard with metrics.
 
 ## Datalogger
-If you add `Logger("stats.sqlite3")`, simplomon will populate a SQLite
+If you add `Logger{filename="stats.sqlite3"}`, simplomon will populate a SQLite
 database (in the file './stats.sqlite3') with lots of interesting metadata,
 one table per checker kind.
 

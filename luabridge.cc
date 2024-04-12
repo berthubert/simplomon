@@ -160,8 +160,10 @@ void initLua()
     
   });
   
-  g_lua.set_function("Logger", [&](const std::string& dbname) {
-    g_sqlw = std::make_unique<SQLiteWriter>(dbname);
+  g_lua.set_function("Logger", [&](sol::table data) {
+    checkLuaTable(data, {"filename"});
+    
+    g_sqlw = std::make_unique<SQLiteWriter>((string)data["filename"]);
   });
 
   g_lua.set_function("doIPv6", [&](bool ipv6) {

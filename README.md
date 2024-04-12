@@ -31,6 +31,10 @@ tens of thousands of checks.
 If you miss features that just make sense, do let me know!  Open an
 issue [here](https://github.com/berthubert/simplomon/issues) please.
 
+# Important news
+If you upgraded on the 12th of April 2024 and were using the SQLite logger,
+you need to change `Logger("db.sqlite")` to `Logger{filename="db.sqlite"}`.
+
 # Mission statement 
 Right now Simplomon is simple and robust. History shows it is a struggle to keep a project lean, but we're going to give it a try. Simple to use however does not imply a lack of powerful features. But it does mean:
 

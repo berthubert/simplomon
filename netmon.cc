@@ -317,6 +317,7 @@ HTTPRedirChecker::HTTPRedirChecker(sol::table data) : Checker(data)
 CheckResult HTTPRedirChecker::perform()
 {
   httplib::Client cli(d_fromhostpart);
+  cli.set_connection_timeout(10);
   auto res = cli.Get(d_frompath);
   if(!res)
     return fmt::format("Could not access path '{}' on server '{}' for redir check",

@@ -144,7 +144,7 @@ std::string MiniCurl::getURL(const std::string& str, const bool nobody, MiniCurl
     d_host_list = nullptr;
   }
   if(res != CURLE_OK)  {
-    throw std::runtime_error("Unable to retrieve URL '"+str+ "': "+string(curl_easy_strerror(res)));
+    throw std::runtime_error("Unable to retrieve URL "+str+ " - "+string(curl_easy_strerror(res)));
   }
 
   d_filetime=-1;

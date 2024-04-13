@@ -339,6 +339,8 @@ private:
 extern std::vector<std::unique_ptr<Checker>> g_checkers;
 extern std::unique_ptr<SQLiteWriter> g_sqlw;
 extern std::optional<bool> g_haveIPv6;
+extern int g_intervalSeconds;
+extern int g_maxWorkers;
 
 void checkLuaTable(sol::table data,
                    const std::set<std::string>& mandatory,

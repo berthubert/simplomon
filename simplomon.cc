@@ -243,16 +243,15 @@ try
     updateWebService();
     
     time_t passed = time(nullptr) - startRun;
-    int interval = 60;
-    if(passed < interval) {
-      int sleeptime = interval - passed;
+    if(passed < g_intervalSeconds) {
+      int sleeptime = g_intervalSeconds - passed;
       fmt::print(", sleeping {} seconds\n", sleeptime);
       sleep(sleeptime);
     }
     else {
       fmt::print(", did not meet our interval of {} seconds with {} workers, possibly raising\n",
-                 interval, numWorkers);
-      if(numWorkers < 16) 
+                 g_intervalSeconds, numWorkers);
+      if(numWorkers < g_maxWorkers) 
         numWorkers++;
     }
   }

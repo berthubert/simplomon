@@ -5,7 +5,8 @@
 using namespace std;
 
 sol::state g_lua;
-
+int g_intervalSeconds=60;
+int g_maxWorkers = 16;
 
 /* every checker has a table of properties, and you get an error if you put unexpected things in there.
    DailyChime{utcHour=11}
@@ -159,6 +160,17 @@ void initLua()
       g_notifiers.push_back(n);
     
   });
+
+  g_lua.set_function("intervalSeconds", [&](int seconds) {
+    g_intervalSeconds = seconds;
+  });
+
+  g_lua.set_function("maxWorkers", [&](int workers) {
+    if(workers <= 0)
+      throw std::runtime_error("maxWorkers must be a positive number");
+    g_maxWorkers = workers;
+  });
+
   
   g_lua.set_function("Logger", [&](sol::table data) {
     checkLuaTable(data, {"filename"});

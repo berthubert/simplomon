@@ -74,10 +74,31 @@ only go out if a notification persists for that many minutes.
 
 # All checkers
 ## dns
+Check if DNS is serving what it should be. TBC. Example:
+
+```lua
+dns{server="100.25.31.6", name="berthub.eu", type="A",
+	acceptable={"86.82.68.237", "217.100.190.174"}}
+dns{server="100.25.31.6", name="berthub.eu", type="AAAA",
+	acceptable={"2001:41f0:782d::2"}}
+```
 
 ## dnssoa
+Check if SOA records are identical. TBC. Example:
+
+```lua
+nameservers={"100.25.31.6", "86.82.68.237", "217.100.190.174"}
+dnssoa{domain="berthub.eu", servers= nameservers}
+dnssoa{domain="hubertnet.nl", servers= nameservers}
+```
 
 ## httpredir
+
+Does the http redirect work? TBC. Example:
+
+```lua
+httpredir{fromUrl="http://berthub.eu", toUrl="https://berthub.eu/"}
+```
 
 ## https
 The https checker supports many things, but with sensible defaults you can

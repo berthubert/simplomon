@@ -237,7 +237,42 @@ addTelegramNotifier{bot_id="your bot id",
 ```
 
 # Webserver
-TBC
+If you run `Webserver{address="127.0.0.1:8080"}`, simplomon will launch a
+webserver. If you run Simplomon inside a container, you'll probably have to
+use `0.0.0.0:8080` for things to work.
+
+You can also add `user="something", password=...` (password in quotes). 
+
+This server supports the following three endpoints. The first, '/health' is
+always enabled. The dashboard and other JSON endpoints only function if you
+supplied a user name and a password, which will be checked using basic auth.
+
+ * /health: generates {"health":"ok"} which appears to make some Docker
+   environments happy
+ * /state: creates a JSON object of all active alerts
+ * /checker-states: a largish JSON object describing the settings of all checkers & the
+ results of the measurements they are doing
+
+If you load / in a webserver you get a somewhat nice dashboard with metrics.
 
 # Logger
-TBC
+Enabled like this:
+
+```lua
+Logger{filename="db.sqlite"}`
+```
+This fills db.sqlite with a _lot_ of statistics. In the database, you'll find the following generic tables:
+
+ * reports: everytime a checker raises an alert, it is logged in this table. There are four columns that are always present:
+   * checker: name of checker that generated this row
+   * subject: within the checker, which subject created the alert condition
+   * reason: human readable description of the problem
+   * tstamp: UNIX timestamp when the report was generated
+ * notifications: a copy of everything that was submitted to the notifiers. Columns:
+   * tstamp: UNIX timestamp when the notification was submitted
+   * message: the message that got sent out
+   
+The reports table also includes additional columns that describe the exact configuration of the checker that caused the report.
+
+In addition, each checker fills its own table with fun statistics on what it checked. This happens even when there are no problems. This table can be used to create graphs, for example, or to perform forensics on alerts.
+

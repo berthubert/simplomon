@@ -107,19 +107,64 @@ Here are the parameters, of which only `url` is mandatory:
    against DNS-based CDNs (like Akamai). 
 
 ## imap
+The imap checker assumes it connects to a TLS endpoint. There it will check the certificate for freshness. 
+
+If a username and password are configured, the checker will check the main Mailbox for messages called 'Simplomon test message'. If no recent message is found, this lead to an alert. Such test messages can be delivered by the smtp checker described below.
+
+Parameters:
+ * server: IP(v6) address of the server to be checked
+ * servername: what name to check the certificate against
+ * minCertDays: optional, expected remaining lifeftime of the certificate
+ * user, password: optional, if set, check if a recent 'Simplomon test message' is present in the main Mailbox
+ 
+The checker will actually delete messages called 'Simplomon test message' to prevent the smtp checker from filling up your mailbox.
 
 ## ping
+Send out IPv4, IPv6 ping messages. Supports %-style link selection for fe80 usage.
+
+```lua
+ping{servers={"9.9.9.9", "8.8.8.8"}} -- does our network even work
+```
+TBC
 
 ## prometheusExp
+Query a Prometheus Node Exporter. TBC.
+Example:
+```lua
+prometheusExp{url="http://10.0.0.1:9100/metrics", 
+checks={{kind="DiskFree", mountpoint="/", gbMin=10},
+        {kind="AptPending"},  -- pending security updates
+        {kind="Bandwidth", device="enp2s0.9", minMbit=0.1, maxMbit=50},
+        {kind="Bandwidth", device="ppp0", minMbit=0.4}
+}}
+```
 
 ## rrsig
+Check for DNSSEC signature expiry. TBC.
+
+```lua
+rrsig{server="45.55.10.200", name="powerdns.com"}
+```
 
 ## smtp
+The smtp checker assumes it connects to a plaintext SMTP server, where it can send STARTTLS to move to a TLS protected session. There it will check the certificate for freshness. 
+
+If the 'from', and 'to' parameters are configured, the checker will attempt to deliver a message with the subject 'Simplomon test message'.
+
+Parameters:
+ * server: IP(v6) address of the server to be checked
+ * servername: what name to check the certificate against
+ * minCertDays: optional, expected remaining lifeftime of the certificate
+ * from, to: optional, if set, deliver a 'Simplomon test message'
+
+This simplomon test message is meant to be checked by the imap checker (see above).
 
 ## tcpportclosed
+Check if certain ports are closed on multiple servers:
 
-
-
-
-
-
+```lua
+-- Check if the following ports are closed
+scaryports={25, 80, 110, 443, 3000, 3306, 5000, 5432, 8000, 8080, 8888}
+tcpportclosed{servers={"100.25.31.6"}, ports=scaryports}
+```
+TBC

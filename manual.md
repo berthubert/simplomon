@@ -189,3 +189,55 @@ scaryports={25, 80, 110, 443, 3000, 3306, 5000, 5432, 8000, 8080, 8888}
 tcpportclosed{servers={"100.25.31.6"}, ports=scaryports}
 ```
 TBC
+
+# All notifiers
+Notifiers are *added* using the `addXNotifier` commands. If you want nothing special, define a notifier at the very top of your configuration file. 
+
+Checkers defined after an `addXNotifier` command will notify through all previously added notifiers. This means that you can for example define another notifier that only gets used by the checkers defined beyond that point.
+
+You can also explicitly set notifiers per checker using the following syntax:
+
+```lua
+testers = {createEmailNotifier{from="bert@example.com", to="bert@example.com",
+server="10.0.0.2}}
+
+https{url="https://staging.example.com", notifiers=testers}
+```
+
+## Email
+Example:
+
+```lua
+addEmailNotifier{from="bert@example.com", to="bert@example.com",
+server="10.0.0.2", minMinutes = 60}
+```
+
+## Ntfy.sy
+Example:
+
+```lua
+addNtfyNotifier{topic="your_secret_topic"}
+```
+You can also specify an authorization through `auth`, and a notification URL through `url`.
+
+## Pushover
+Example:
+```lua
+addPushoverNotifier{user="copy this in from pushover config",
+        apikey="copy this in from pushover config"}
+```
+
+## Telegram
+Example:
+
+```lua
+addTelegramNotifier{bot_id="your bot id",
+                       apikey="your api key",
+                       chat_id="the chat id"}
+```
+
+# Webserver
+TBC
+
+# Logger
+TBC

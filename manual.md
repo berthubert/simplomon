@@ -42,7 +42,7 @@ reuse, or to have loops that populate many checks from a loop etc.
 The configuration file is read once, and it defines:
 
  * Checkers: what do we check
- * Notifiers: how to we notify alerts
+ * Notifiers: how do we notify alerts
  * Settings: how often do we check, using how many parallel checks etc
  * Logger: if alert, notifications, statistics get logged
  * Webserver: if we should launch the webserver, if there should be a

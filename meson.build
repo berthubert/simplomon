@@ -70,7 +70,38 @@ doctest_dep=dependency('doctest')
 simplesockets_dep = dependency('simplesockets', static: true)
 # argparse_dep = dependency('argparse', version: '>=3')
 
+prog_xxd = find_program('xxd')
+
+index_html_h = custom_target(
+    'index_html.h', output : 'index_html.h',  input : 'html/index.html',  
+    command : [prog_xxd, '-i', '@INPUT@', '@OUTPUT@'],
+)
+
+style_css_h = custom_target(
+    'style_css.h', output : 'style_css.h',  input : 'html/style.css',  
+    command : [prog_xxd, '-i', '@INPUT@', '@OUTPUT@'],
+)
+
+simplomon_ico_h = custom_target(
+    'simplomon_ico.h', output : 'simplomon_ico.h',  input : 'html/simplomon.ico',  
+    command : [prog_xxd, '-i', '@INPUT@', '@OUTPUT@'],
+)
+
+alpine_min_js_h = custom_target(
+    'alpine_min_js.h', output : 'alpine_min_js.h',  input : 'html/alpine.min.js',  
+    command : [prog_xxd, '-i', '@INPUT@', '@OUTPUT@'],
+)
+
+logic_js_h = custom_target(
+    'logic_js.h', output : 'logic_js.h',  input : 'html/logic.js',  
+    command : [prog_xxd, '-i', '@INPUT@', '@OUTPUT@'],
+)
+
+
+webpages = [logic_js_h, alpine_min_js_h, simplomon_ico_h, style_css_h, index_html_h]
+
 executable('simplomon', 'simplomon.cc', 'notifiers.cc', 'minicurl.cc', 'dnsmon.cc', 'record-types.cc', 'dnsmessages.cc', 'dns-storage.cc', 'netmon.cc', 'luabridge.cc', 'webservice.cc', 'support.cc', 'promon.cc', 'mailmon.cc', 'nonblocker.cc',
+webpages,
 	dependencies: [json_dep, fmt_dep, cpphttplib,
 	simplesockets_dep, lua_dep, curl_dep, sqlite_dep, sqlitewriter_dep])
 

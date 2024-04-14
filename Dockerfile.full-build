@@ -11,6 +11,7 @@ RUN apt-get update -yqq && apt-get install -yqq \
     openssl \
     libssl-dev \
     zlib1g-dev \
+    xxd \
     libsqlite3-dev
 COPY . /src
 WORKDIR /src

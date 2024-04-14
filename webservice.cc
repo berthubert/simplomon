@@ -5,6 +5,11 @@
 #include <openssl/bio.h>
 #include <openssl/evp.h>
 
+#include "index_html.h"
+#include "style_css.h"
+#include "logic_js.h"
+#include "alpine_min_js.h"
+#include "simplomon_ico.h"
 using namespace std;
 
 static std::mutex s_lock;
@@ -78,9 +83,8 @@ void updateWebService()
   }
 }
 
-static void webserverThread(std::unique_ptr<httplib::Server> svr, string addr)
+static void webserverThread(std::unique_ptr<httplib::Server> svr, ComboAddress ca)
 {
-  ComboAddress ca(addr, 8080);
   if(svr->listen(ca.toString(), ntohs(ca.sin4.sin_port))) {
     cout<<"Error launching server: "<<strerror(errno)<<endl;
     exit(EXIT_FAILURE);
@@ -134,7 +138,6 @@ static bool checkAuth(const httplib::Request& req, httplib::Response &res)
 
   if(!g_webpassword || g_webpassword->empty())
     goto fail;
-
   
   if(B64Decode(auth.substr(6), dec))
     goto fail;
@@ -204,10 +207,26 @@ void startWebService(sol::table data)
     res.set_content(s_checkerstates.dump(), "application/json");
   });
 
-  svr->set_mount_point("/", "./html");  
+  svr->Get("/simplomon.ico", [](const auto& req, auto& res) {
+    res.set_content(string((const char*)___html_simplomon_ico, ___html_simplomon_ico_len), "image/x-icon");
+  });
+  svr->Get("/alpine.min.js", [](const auto& req, auto& res) {
+    res.set_content(string((const char*)___html_alpine_min_js, ___html_alpine_min_js_len), "application/javascript");
+  });
+  svr->Get("/logic.js", [](const auto& req, auto& res) {
+    res.set_content(string((const char*)___html_logic_js, ___html_logic_js_len), "application/javascript");
+  });
+  svr->Get("/style.css", [](const auto& req, auto& res) {
+    res.set_content(string((const char*)___html_style_css, ___html_style_css_len), "text/css");
+  });
+  svr->Get("/", [](const auto& req, auto& res) {
+    res.set_content(string((const char*)___html_index_html, ___html_index_html_len), "text/html");
+  });
 
-  
-  std::thread t(webserverThread, std::move(svr), data.get_or("address", string("0.0.0.0:8080")));
+  string addr = data.get_or("address", string("0.0.0.0:8080"));
+  ComboAddress ca(addr, 8080);
+  fmt::print("Going to launch webserver on {}\n", ca.toStringWithPort());
+  std::thread t(webserverThread, std::move(svr), ca);
   t.detach();
 }
 

@@ -212,7 +212,7 @@ addEmailNotifier{from="bert@example.com", to="bert@example.com",
 server="10.0.0.2", minMinutes = 60}
 ```
 
-## Ntfy.sy
+## Ntfy
 Example:
 
 ```lua

@@ -50,10 +50,13 @@ try
   DNSSection rrsection;
   uint32_t ttl;
   while(dmr.getRR(rrsection, dn, dt, ttl, rr)) {
-    if(rrsection == DNSSection::Answer && dt == DNSType::SOA) {
+      if(rrsection == DNSSection::Answer && dt == DNSType::SOA) {
+	fmt::print("Detected working IPv6 connectivity\n");
+	/*
       fmt::print("Got answer from {}, SOA serial for root: {}\n",
                  rem.toString(),
                  dynamic_cast<SOAGen*>(rr.get())->d_serial);
+	*/
     }
   }
 

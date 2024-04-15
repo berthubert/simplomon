@@ -4,6 +4,7 @@ sqlite_dep = dependency('sqlite3', version : '>3')
 thread_dep = dependency('threads')
 json_dep = dependency('nlohmann_json')
 fmt_dep = dependency('fmt', version: '>9', static: true)
+openssl_dep = dependency('openssl', version : '>=3.0.0')
 
 curl_dep = dependency(
     'libcurl',
@@ -102,11 +103,11 @@ webpages = [logic_js_h, alpine_min_js_h, simplomon_ico_h, style_css_h, index_htm
 
 executable('simplomon', 'simplomon.cc', 'notifiers.cc', 'minicurl.cc', 'dnsmon.cc', 'record-types.cc', 'dnsmessages.cc', 'dns-storage.cc', 'netmon.cc', 'luabridge.cc', 'webservice.cc', 'support.cc', 'promon.cc', 'mailmon.cc', 'nonblocker.cc',
 webpages,
-	dependencies: [json_dep, fmt_dep, cpphttplib,
+	dependencies: [json_dep, fmt_dep, cpphttplib, openssl_dep,
 	simplesockets_dep, lua_dep, curl_dep, sqlite_dep, sqlitewriter_dep])
 
 executable('testrunner', 'testrunner.cc', 'notifiers.cc', 'minicurl.cc', 'dnsmon.cc', 'record-types.cc', 'dnsmessages.cc', 'dns-storage.cc', 'netmon.cc', 'luabridge.cc', 'webservice.cc', 'support.cc', 'promon.cc', 'mailmon.cc', 'nonblocker.cc', 
-	dependencies: [doctest_dep, curl_dep, json_dep, fmt_dep, cpphttplib, sqlite_dep,
+	dependencies: [doctest_dep, curl_dep, json_dep, fmt_dep, cpphttplib, sqlite_dep, openssl_dep,
 	simplesockets_dep, lua_dep, sqlitewriter_dep])
 
 

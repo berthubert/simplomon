@@ -28,9 +28,12 @@ RUN tar xf /src/build/meson-dist/simplomon-*.tar.xz && mv simplomon-*/* .
 RUN LDFLAGS=-static meson setup build --prefer-static -Dbuildtype=release 
 RUN meson compile -C build/
 RUN strip build/simplomon
-RUN tar cvhf certs.tar /etc/ssl/certs/ca-certificates.crt  /usr/lib/ssl/openssl.cnf /usr/lib/ssl/certs/*
+#RUN tar cvhf certs.tar /etc/ssl/certs/ca-certificates.crt  /usr/lib/ssl/openssl.cnf /usr/lib/ssl/certs/*
 FROM scratch
-ADD certs.tar /
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+COPY --from=builder /usr/lib/ssl/openssl.cnf /usr/lib/ssl/openssl.cnf
+COPY --from=builder /usr/lib/ssl/certs/* /usr/lib/ssl/certs/
+
 COPY --from=builder /project/build/simplomon simplomon
 COPY --from=builder /project/html html
 VOLUME /config

@@ -96,17 +96,16 @@ std::mutex SSLHelper::d_lock;
 
 void SSLHelper::printDetails()
 {
-  X509                *cert = NULL;
-  cert = SSL_get0_peer_certificate(ssl); // has to be 0 because we leak otherwise
+  shared_ptr<X509> cert(SSL_get_peer_certificate(ssl), X509_free);
   
-  X509_NAME_print_ex_fp(stdout, X509_get_subject_name(cert), 0,XN_FLAG_RFC2253);
+  X509_NAME_print_ex_fp(stdout, X509_get_subject_name(cert.get()), 0,XN_FLAG_RFC2253);
   fmt::print("\n");
   
-  X509_NAME_print_ex_fp(stdout, X509_get_issuer_name(cert), 0,XN_FLAG_RFC2253);
+  X509_NAME_print_ex_fp(stdout, X509_get_issuer_name(cert.get()), 0,XN_FLAG_RFC2253);
   fmt::print("\n");
   
   
-  ASN1_INTEGER *serial = X509_get_serialNumber(cert);
+  ASN1_INTEGER *serial = X509_get_serialNumber(cert.get());
   if (serial != NULL) {
     BIGNUM *bn_serial = ASN1_INTEGER_to_BN(serial, NULL);
     char *serial_string = BN_bn2hex(bn_serial);
@@ -117,11 +116,11 @@ void SSLHelper::printDetails()
     BN_free(bn_serial);
   }
   
-  auto t=X509_get_notAfter(cert);
+  auto t=X509_get_notAfter(cert.get());
   struct tm notafter, notbefore;
   ASN1_TIME_to_tm(t, &notafter);
 
-  t=X509_get_notBefore(cert);
+  t=X509_get_notBefore(cert.get());
   ASN1_TIME_to_tm(t, &notbefore);
   fmt::print("{:%Y-%m-%d %H:%M} - {:%Y-%m-%d %H:%M}\n", notbefore, notafter);
 }
@@ -133,14 +132,14 @@ void SSLHelper::checkConnection(const std::string& host, int minCertDays)
     throw std::runtime_error(fmt::format("Certificate verification error: {}\n", X509_verify_cert_error_string(verify_result)));
   }
   
-  X509* cert = SSL_get0_peer_certificate(ssl);
+  shared_ptr<X509> cert(SSL_get_peer_certificate(ssl), X509_free);
   // this is sensitive to trailing dots
-  if (X509_check_host(cert, host.c_str(), host.size(), 0, NULL) != 1) {
+  if (X509_check_host(cert.get(), host.c_str(), host.size(), 0, NULL) != 1) {
     throw std::runtime_error(fmt::format("Cert does not match host {}", host));
   }
 
   if(minCertDays > 0) {
-    auto t=X509_get_notAfter(cert);
+    auto t=X509_get_notAfter(cert.get());
     struct tm notafter;
     ASN1_TIME_to_tm(t, &notafter);
     time_t expire = mktime(&notafter);

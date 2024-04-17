@@ -112,8 +112,7 @@ CheckResult DNSChecker::perform()
 
   double timeo=0.5;
   if(!waitForData(sock, &timeo)) { // timeout
-    return fmt::format("Timeout asking DNS question for {}|{} to {}",
-                          d_qname.toString(), toString(d_qtype), d_nsip.toStringWithPort());
+    return fmt::format("Timeout asking DNS question for {}|{} to {}", d_qname, d_qtype, d_nsip.toStringWithPort());
   }
     
   
@@ -132,7 +131,7 @@ CheckResult DNSChecker::perform()
 
   if((RCode)dmr.dh.rcode != RCode::Noerror) {
     return fmt::format("Got DNS response with RCode {} from {} for question {}|{}",
-                       toString((RCode)dmr.dh.rcode), d_qname.toString(), d_nsip.toStringWithPort(), toString(d_qtype));
+                       (RCode)dmr.dh.rcode, d_qname, d_nsip.toStringWithPort(), d_qtype);
   }
   
   std::unique_ptr<RRGen> rr;
@@ -151,12 +150,12 @@ CheckResult DNSChecker::perform()
           for(const auto& a : d_acceptable)
             acc.insert(makeDNSName(a));
           if(!acc.count(dynamic_cast<NSGen*>(rr.get())->d_name)) {
-            return fmt::format("Unacceptable DNS answer {} for question {} from {}. Acceptable: {}", rr->toString(), d_qname.toString(), d_nsip.toStringWithPort(), d_acceptable);
+            return fmt::format("Unacceptable DNS answer {} for question {} from {}. Acceptable: {}", rr->toString(), d_qname, d_nsip.toStringWithPort(), d_acceptable);
           }
           else matches++;
         }
         else if(!d_acceptable.count(rr->toString())) {
-          return fmt::format("Unacceptable DNS answer {} for question {} from {}. Acceptable: {}", rr->toString(), d_qname.toString(), d_nsip.toStringWithPort(), d_acceptable);
+          return fmt::format("Unacceptable DNS answer {} for question {} from {}. Acceptable: {}", rr->toString(), d_qname, d_nsip.toStringWithPort(), d_acceptable);
         }
         else matches++;
       }
@@ -169,7 +168,7 @@ CheckResult DNSChecker::perform()
     return "";
   }
   else {
-    return fmt::format("No matching answer to question {}|{} to {} was received", d_qname.toString(), toString(d_qtype), d_nsip.toStringWithPort());
+    return fmt::format("No matching answer to question {}|{} to {} was received", d_qname, d_qtype, d_nsip.toStringWithPort());
   }
   
 }
@@ -205,8 +204,7 @@ CheckResult DNSSOAChecker::perform()
 
     double timeo=0.5;
     if(!waitForData(sock, &timeo)) { // timeout
-      return fmt::format("Timeout asking DNS question for {}|{} to {}",
-                            d_domain.toString(), toString(DNSType::SOA), s.toStringWithPort());
+      return fmt::format("Timeout asking DNS question for {}|{} to {}", d_domain, DNSType::SOA, s.toStringWithPort());
     }
     string resp = SRecvfrom(sock, 65535, server);
     
@@ -223,7 +221,7 @@ CheckResult DNSSOAChecker::perform()
     
     if((RCode)dmr.dh.rcode != RCode::Noerror) {
       return fmt::format("Got DNS response with RCode {} for question {}|{}",
-                            toString((RCode)dmr.dh.rcode), d_domain.toString(), toString(DNSType::SOA));
+                            (RCode)dmr.dh.rcode, d_domain, DNSType::SOA);
     }
   
     std::unique_ptr<RRGen> rr;
@@ -236,13 +234,11 @@ CheckResult DNSSOAChecker::perform()
       }
     }
     if(!matches) {
-      return fmt::format("DNS server {} did not return a SOA for {}",
-                            s.toStringWithPort(), d_domain.toString());
+      return fmt::format("DNS server {} did not return a SOA for {}", s.toStringWithPort(), d_domain);
     }
   }
   if(harvest.size() != 1) {
-    return fmt::format("Had different SOA records for {}: {}",
-                       d_domain.toString(), harvest);
+    return fmt::format("Had different SOA records for {}: {}", d_domain, harvest);
   }
   else {
     return "";
@@ -281,8 +277,7 @@ CheckResult RRSIGChecker::perform()
 
   double timeo=1.0;
   if(!waitForData(sock, &timeo)) { // timeout
-    return fmt::format("Timeout asking DNS question for {}|{} to {}",
-                       d_qname.toString(), toString(d_qtype), d_nsip.toStringWithPort());
+    return fmt::format("Timeout asking DNS question for {}|{} to {}", d_qname, d_qtype, d_nsip.toStringWithPort());
   }
     
   
@@ -298,7 +293,7 @@ CheckResult RRSIGChecker::perform()
   
   if((RCode)dmr.dh.rcode != RCode::Noerror) {
     return fmt::format("Got DNS response with RCode {} from {} for question {}|{}",
-                       toString((RCode)dmr.dh.rcode), d_qname.toString(), d_nsip.toStringWithPort(), toString(d_qtype));
+                       (RCode)dmr.dh.rcode, d_qname, d_nsip.toStringWithPort(), d_qtype);
   }
   
   std::unique_ptr<RRGen> rr;
@@ -307,7 +302,7 @@ CheckResult RRSIGChecker::perform()
     if(rrsection == DNSSection::Answer && dt == DNSType::RRSIG && dn == d_qname) {
       auto rrsig = dynamic_cast<RRSIGGen*>(rr.get());
       if(rrsig->d_type != d_qtype) {
-        fmt::print("Skipping wrong type {}\n", toString(rrsig->d_type));
+        fmt::print("Skipping wrong type {}\n", rrsig->d_type);
         continue;
       }
       struct tm tmstart={}, tmend={};
@@ -322,10 +317,10 @@ CheckResult RRSIGChecker::perform()
       if(now + d_minDays * 86400 > expire)
         return fmt::format("Got RRSIG that expires in {:.0f} days for {}|{} from {}, valid from {:%Y-%m-%d %H:%M} to {:%Y-%m-%d %H:%M} UTC",
                            (expire - now)/86400.0,
-                           d_qname.toString(), toString(d_qtype), d_nsip.toStringWithPort(), tmstart, tmend);
+                           d_qname, d_qtype, d_nsip.toStringWithPort(), tmstart, tmend);
       else if(now < inception) {
         fmt::print("Got RRSIG that is not yet active for {}|{} from {}, valid from {:%Y-%m-%d %H:%M} to {:%Y-%m-%d %H:%M} UTC\n",
-                   d_qname.toString(), toString(d_qtype), d_nsip.toStringWithPort(), tmstart, tmend);
+                   d_qname, d_qtype, d_nsip.toStringWithPort(), tmstart, tmend);
 
       }
       else
@@ -333,7 +328,7 @@ CheckResult RRSIGChecker::perform()
     }
   }
   if(!valid)
-    return fmt::format("Did not find an active RRSIG for {}|{} over at server {}", d_qname.toString(), toString(d_qtype), d_nsip.toStringWithPort());
+    return fmt::format("Did not find an active RRSIG for {}|{} over at server {}", d_qname, d_qtype, d_nsip.toStringWithPort());
   
   return "";
 }

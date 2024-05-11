@@ -17,8 +17,12 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Update apt
+      run: sudo apt-get update
+
+
     - name: Install various apt dependencies
-      run: sudo apt-get install libsqlite3-dev python3-pip libnghttp2-dev pkg-config libssl-dev liblua5.3-dev xxd
+      run: sudo apt-get -y install libsqlite3-dev python3-pip libnghttp2-dev pkg-config libssl-dev liblua5.3-dev xxd
 
     - name: Install meson
       run: sudo pip3 install meson ninja

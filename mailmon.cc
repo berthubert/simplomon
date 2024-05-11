@@ -177,7 +177,7 @@ CheckResult SMTPChecker::perform()
       if(line.size() < 4)
         throw std::runtime_error("Invalid response from SMTP server: '"+line+"'");
       if(stoi(line.substr(0,3)) != expected)
-        throw std::runtime_error("Unexpected response from SMTP server: '"+line+"'");
+        throw std::runtime_error(fmt::format("Unexpected response (not {}) from SMTP server: '{}'", expected, line));
       if(line.at(3) == ' ')
         break;
     }
@@ -218,7 +218,7 @@ CheckResult SMTPChecker::perform()
       if(line.size() < 4)
         throw std::runtime_error("Invalid response from SMTP server: '"+line+"'");
       if(stoi(line.substr(0,3)) != expected)
-        throw std::runtime_error("Unexpected response from SMTP server: '"+line+"'");
+        throw std::runtime_error(fmt::format("Unexpected response (not {}) from SMTP server: '{}'", expected, line));
       if(line.at(3) == ' ')
         break;
     }

@@ -197,7 +197,7 @@ if they did not lead to notifications.
  * Performance tests ("average response time past hour > 100ms")
 
 ## Docker
-There is [an image on the Docker hub](https://hub.docker.com/repository/docker/berthubert/simplomon/general) which you can pull (berthubert/simplomon).
+There is [an image on the Docker hub](https://hub.docker.com/r/berthubert/simplomon) which you can pull (berthubert/simplomon).
 
 The image will read its configuration file from the HTTPS URL supplied in the SIMPLOMON_CONFIG_URL environment variable. 
 

@@ -11,10 +11,7 @@
 
 using namespace std;
 
-
-
-
-
+// attempts to get an answer from a bunch of IPv6 root servers
 bool checkForWorkingIPv6()
 try
 {
@@ -116,7 +113,6 @@ CheckResult DNSChecker::perform()
                           d_qname.toString(), toString(d_qtype), d_nsip.toStringWithPort());
   }
     
-  
   string resp = SRecvfrom(sock, 65535, server);
   d_results[""]["msec"] = dti.lapUsec() / 1000.0;
   DNSMessageReader dmr(resp);
@@ -174,7 +170,7 @@ CheckResult DNSChecker::perform()
   
 }
 
-
+// check if all servers respond with the same SOA
 DNSSOAChecker::DNSSOAChecker(sol::table data) : Checker(data, 2)
 {
   checkLuaTable(data, {"domain", "servers"});
@@ -184,11 +180,9 @@ DNSSOAChecker::DNSSOAChecker(sol::table data) : Checker(data, 2)
     d_servers.insert(ComboAddress(s, 53));
 }
 
-
-
 CheckResult DNSSOAChecker::perform()
 {
-  set<string> harvest;
+  map<string, set<string>> harvest;
   for(const auto& s: d_servers) {
     DNSMessageWriter dmw(d_domain, DNSType::SOA);
     
@@ -231,7 +225,7 @@ CheckResult DNSSOAChecker::perform()
     int matches = 0;
     while(dmr.getRR(rrsection, dn, dt, ttl, rr)) {
       if(dn == d_domain && rrsection == DNSSection::Answer && dt == DNSType::SOA) {
-        harvest.insert(rr->toString());
+        harvest[rr->toString()].insert(s.toStringWithPort());
         matches++;
       }
     }

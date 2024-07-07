@@ -336,12 +336,11 @@ CheckResult HTTPRedirChecker::perform()
 }
 
 
-#define PACKETSIZE	1024
 namespace {
 struct icmppacket
 {
 	struct icmphdr hdr;
-	char msg[PACKETSIZE-sizeof(struct icmphdr)];
+	char msg[];
 };
 }
 /*--------------------------------------------------------------------*/
@@ -362,35 +361,43 @@ static unsigned short internetchecksum(void *b, int len)
 	return result;
 }
 
-static std::string makeICMPQuery(int family, uint16_t id, uint16_t seq)
+static std::string makeICMPQuery(int family, uint16_t id, uint16_t seq, size_t psize)
 {
   if(family==AF_INET) {
-    icmppacket p;
-    memset(&p, 0, sizeof(p));
-    p.hdr.type = ICMP_ECHO;
-    p.hdr.un.echo.id = id;
-    p.hdr.un.echo.sequence = seq;
+    size_t full_size = sizeof(icmphdr) + psize;
+    vector<char> store(full_size, 0);
+    icmppacket *p = (icmppacket *)store.data();
+
+    p->hdr.type = ICMP_ECHO;
+    p->hdr.un.echo.id = id;
+    p->hdr.un.echo.sequence = seq;
     unsigned int i;
-    for(i = 0; i < sizeof(p.msg)-1; i++ )
-      p.msg[i] = i+'0';
-    p.msg[i] = 0;
-    
-    
-    p.hdr.checksum = 0;
-    p.hdr.checksum = internetchecksum(&p, sizeof(p));
-    return std::string((const char*)&p, sizeof(p));
+    for(i = 0; i < psize; i++) {
+      p->msg[i] = (char)i;
+    }
+
+    p->hdr.checksum = 0;
+    p->hdr.checksum = internetchecksum(p, full_size);
+    return std::string((const char*)p, full_size);
   }
   else {
     /* compose ICMPv6 packet */
-    struct icmp6_hdr hdr;
-    memset(&hdr, 0, sizeof(hdr));
+    size_t full_size = sizeof(struct icmp6_hdr) + psize;
+    vector<char> store(full_size, 0);
+    void *packet = store.data();
+    struct icmp6_hdr *hdr = (struct icmp6_hdr *)packet;
 
-    hdr.icmp6_type                      = ICMP6_ECHO_REQUEST;
-    hdr.icmp6_code                      = 0;
-    hdr.icmp6_dataun.icmp6_un_data16[0] = id; /* identifier */
-    hdr.icmp6_dataun.icmp6_un_data16[1] = seq; /* sequence no */
+    hdr->icmp6_type                      = ICMP6_ECHO_REQUEST;
+    hdr->icmp6_code                      = 0;
+    hdr->icmp6_dataun.icmp6_un_data16[0] = id; /* identifier */
+    hdr->icmp6_dataun.icmp6_un_data16[1] = seq; /* sequence no */
 
-    return std::string((const char*)&hdr, sizeof(hdr));
+    /* fill the rest of the packet */
+    unsigned char *data = (unsigned char *)(hdr + 1);
+    for (size_t i = 0; i < psize; i++)
+      data[i] = i;
+
+    return std::string((const char*)hdr, full_size);
   }
 }
 
@@ -437,7 +444,7 @@ bool HarvestTTL(struct msghdr* msgh, int* ttl)
 
 PINGChecker::PINGChecker(sol::table data) : Checker(data, 2)
 {
-  checkLuaTable(data, {"servers"}, {"localIP"});
+  checkLuaTable(data, {"servers"}, {"localIP", "timeout", "size", "df"});
   for(const auto& s: data.get<vector<string>>("servers")) {
     d_servers.insert(ComboAddress(s));
   }
@@ -446,6 +453,18 @@ PINGChecker::PINGChecker(sol::table data) : Checker(data, 2)
     d_localIP = ComboAddress(localip);
     d_attributes["localIP"] = d_localIP->toString();
   }
+
+  d_timeout = data.get_or("timeout", 1.0);
+  if (d_timeout <= 0 || d_timeout > 10)
+    throw runtime_error("ping timeout must be reasonable, between 0 and 10 seconds");
+
+  /* Size of payload, except IP/ICMP header, 1016 to imitate previous default */
+  d_size = data.get_or("size", 1016);
+  if(d_size < 0 || d_size > 65500)
+    throw runtime_error("ping size must be between 0 and 65500");
+
+  /* Based on observation, old default was DF is set */
+  d_dontFragment = data.get_or("df", true);
 
   try {
     Socket sock(AF_INET, SOCK_DGRAM, IPPROTO_ICMP);
@@ -468,12 +487,21 @@ CheckResult PINGChecker::perform()
     SConnect(sock, s);
     SSetsockopt(sock, SOL_IP, IP_RECVTTL, 1);
 
-    string packet = makeICMPQuery(s.sin4.sin_family, 1, 1);
+    if (s.sin4.sin_family == AF_INET) {
+      if (d_dontFragment) {
+        SSetsockopt(sock, IPPROTO_IP, IP_MTU_DISCOVER, IP_PMTUDISC_DO);
+      } else {
+        SSetsockopt(sock, IPPROTO_IP, IP_MTU_DISCOVER, IP_PMTUDISC_DONT);
+      }
+    }
+
+    string packet = makeICMPQuery(s.sin4.sin_family, 1, 1, d_size);
     DTime dt;
     dt.start();
     SWrite(sock, packet);
-    double timeo=1.0;
-    if(!waitForData(sock, &timeo)) { // timeout
+
+    double timeo = d_timeout;
+    if(!waitForData(sock, &timeo)) {
       ret.d_reasons[s.toStringWithPort()].push_back(fmt::format("Timeout waiting for ping response from {}",
                                         s.toString()));
       continue;

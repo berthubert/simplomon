@@ -143,10 +143,18 @@ The checker will actually delete messages called 'Simplomon test message' to pre
 ## ping
 Send out IPv4, IPv6 ping messages. Supports %-style link selection for fe80 usage.
 
+Parameters:
+* df: true/false, if true(default), the checker will also check if the network path has MTU limitations. Ignored for IPv6.
+* timeout: double, in seconds, how long to wait for a ping reply. Default is 1 second.
+* size: integer, how many bytes to send, additional to icmp header. Default is 1016 bytes.
+
 ```lua
 ping{servers={"9.9.9.9", "8.8.8.8"}} -- does our network even work
+ping{servers={"10.0.252.2"}, size=1472} -- do we have full MTU 1500 till this server?
+ping{servers={"fe80::%enp4s0"}} -- does our local network work
+ping{servers={"2a03:2880:f142:182:face:b00c:0:25de"}} -- ping IPv6 facebook
 ```
-TBC
+
 
 ## prometheusExp
 Query a Prometheus Node Exporter. TBC.

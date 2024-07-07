@@ -60,11 +60,20 @@ CheckResult TCPPortClosedChecker::perform()
   return cr;
 }
 
+std::vector<std::string> split(const std::string& s, char delimiter)
+{
+  std::vector<std::string> tokens;
+  std::string token;
+  std::istringstream tokenStream(s);
+  while (std::getline(tokenStream, token, delimiter))
+    tokens.push_back(token);
+  return tokens;
+}
 
 // XXX needs switch to select IPv4 or IPv6 or happy eyeballs?
 HTTPSChecker::HTTPSChecker(sol::table data) : Checker(data)
 {
-  checkLuaTable(data, {"url"}, {"maxAgeMinutes", "minBytes", "minCertDays", "serverIP", "method", "localIP4", "localIP6", "dns", "regex"});
+  checkLuaTable(data, {"url"}, {"maxAgeMinutes", "minBytes", "minCertDays", "serverIP", "method", "localIP4", "localIP6", "dns", "regex", "CertPubKey"});
   d_url = data.get<string>("url");
   d_maxAgeMinutes =data.get_or("maxAgeMinutes", 0);
   d_minCertDays =  data.get_or("minCertDays", 14);
@@ -76,6 +85,7 @@ HTTPSChecker::HTTPSChecker(sol::table data) : Checker(data)
   d_method =       data.get_or("method", string("GET"));
   vector<string> dns = data.get_or("dns", vector<string>());
   d_regexStr =     data.get_or("regex", string(""));
+  d_cert_pubkey = data.get_or("CertPubKey", string(""));
 
   d_attributes["url"] = d_url;
   d_attributes["method"] = d_method;
@@ -93,6 +103,26 @@ HTTPSChecker::HTTPSChecker(sol::table data) : Checker(data)
   if(!localip6.empty()) {
     d_localIP6 = ComboAddress(localip6);
     d_attributes["localIP6"] = d_localIP6->toString();
+  }
+
+  // Validate CertPubKey
+  // It should be 3 parts, separated by : (For now we only support RSA keys)
+  // RSA:RSA(e):RSA(n)
+  if (!d_cert_pubkey.empty()) {
+    // Count how many :
+    size_t count = std::count(d_cert_pubkey.begin(), d_cert_pubkey.end(), ':');
+    vector<string> parts = split(d_cert_pubkey, ':');
+    // At least one : should be there
+    if (count == 0) {
+      throw runtime_error(fmt::format("Invalid CertPubKey '{}', should be KEYTYPE:KEYCOMPONENTS", d_cert_pubkey));
+    }
+    // As soon as ECDSA appear in certinfo we will add more components
+    if (parts[0] == "RSA") {
+      if (count != 2)
+        throw runtime_error(fmt::format("Invalid RSA CertPubKey '{}', should be RSA:RSA(e):RSA(n)", d_cert_pubkey));
+    } else {
+      throw runtime_error(fmt::format("Only RSA keys are supported, not '{}'", parts[0]));
+    }
   }
 
   
@@ -127,6 +157,7 @@ CheckResult HTTPSChecker::perform()
   activeServerIP4.sin4.sin_family = 0; // "unset"
   activeServerIP6.sin4.sin_family = 0; // "unset"
   double dnsMsec4 = 0, dnsMsec6 = 0;
+  bool signatureOK = false;
 
   DNSName qname = makeDNSName(extractHostFromURL(d_url));
   
@@ -254,6 +285,23 @@ CheckResult HTTPSChecker::perform()
         struct tm tm={};
         // Jul 29 00:00:00 2023 GMT
         
+        // check if any of certs in chain Signature match d_cert_pubkey
+        if(!d_cert_pubkey.empty()) {
+          vector<string> parts = split(d_cert_pubkey, ':');
+          if (parts[0] == "RSA") {
+            // Verify if we have rsa(e) and rsa(n) in the cert
+            if (cert.second.find("rsa(e)") != cert.second.end() && cert.second.find("rsa(n)") != cert.second.end()) {
+              // Build certificate Signature string: RSA:$rsa(e):$rsa(n)
+              string certSignature = fmt::format("RSA:{}:{}", cert.second["rsa(e)"], cert.second["rsa(n)"]);
+              // debug print
+              //fmt::print("Cert Signature: {}\n", certSignature);
+              if (certSignature.compare(d_cert_pubkey) == 0) {
+                signatureOK = true;
+              }
+            }
+          }
+        }
+
         strptime(cert.second["Expire date"].c_str(), "%b %d %H:%M:%S %Y", &tm);
         time_t expire = mktime(&tm);
         strptime(cert.second["Start date"].c_str(), "%b %d %H:%M:%S %Y", &tm);
@@ -274,6 +322,11 @@ CheckResult HTTPSChecker::perform()
       if(days < d_minCertDays) {
         cr.d_reasons[subject].push_back(fmt::format("A certificate for '{}' expires in {:d} days{}",
                                                     d_url, (int)round(days), serverIP));
+        return;
+      }
+      if (!d_cert_pubkey.empty() && !signatureOK) {
+        cr.d_reasons[subject].push_back(fmt::format("A certificate for '{}' does not have the expected pubkey '{}'",
+                                                    d_url, d_cert_pubkey));
         return;
       }
     }

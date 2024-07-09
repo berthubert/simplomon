@@ -116,7 +116,7 @@ Here are the parameters, of which only `url` is mandatory:
  * serverIP: perform the check for `url` on this IPv4/IPv6 address. Useful
    for if you know you have multiple backends, and want to force the test to
    happen on all of them.
- * localIPv4/localIPv6: bind to these addresses when connecting to IPv4 or
+ * localIP4/localIP6: bind to these addresses when connecting to IPv4 or
    IPv6. Can be useful to perform tests from systems with multiple internet
    connections.
  * minBytes: if the web server returns fewer bytes than this, it is an alert

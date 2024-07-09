@@ -111,7 +111,7 @@ https{url="https://berthub.eu", serverIP="2001:41f0:782d::2"}
 -- check if a URL works correctly if resolved via specific nameserver
 https{url="https://berthub.eu", dns={"8.8.8.8"}}
 -- or from a specific source IP
-https{url="https://berthub.eu", dns={"9.9.9.9"], localIP="10.0.0.9"}
+https{url="https://berthub.eu", dns={"9.9.9.9"}, localIP4="10.0.0.9"}
 
 -- Check if SOA records are identical
 nameservers={"100.25.31.6", "86.82.68.237", "217.100.190.174"}

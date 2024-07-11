@@ -209,6 +209,9 @@ public:
 private:
   std::set<ComboAddress> d_servers;
   std::optional<ComboAddress> d_localIP;
+  double d_timeout;
+  size_t d_size;
+  bool d_dontFragment;
 };
 
 

@@ -126,6 +126,14 @@ Here are the parameters, of which only `url` is mandatory:
    HEAD, possibly because of "web firewalls"
  * dns: get the IP address from these nameservers. Useful when testing
    against DNS-based CDNs (like Akamai). 
+ * CertPubKey: Remote certificate public key. If set, the checker will alert
+   if the public key of the certificate does not match this value.
+   Format is tuples divided by colon, where is first tuple is the
+   key type (RSA, ECDSA), remaining tuples depend on the key type. For RSA
+   keys, the second tuple is the exponent, the third tuple is the modulus (both in hex).
+   For example:
+   CertPubKey="RSA:10001:HEXLONGSTRING"
+
 
 ## imap
 The imap checker assumes it connects to a TLS endpoint. There it will check the certificate for freshness. 

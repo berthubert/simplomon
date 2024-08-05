@@ -37,7 +37,9 @@ inline x make##x(const char* from) {                                   \
  }                                                                     \
 inline std::ostream& operator<<(std::ostream &os, const x& s) {        \
   os << toString(s); return os; }                                      \
-                                                                      
+inline std::string format_as(const x& s) {                             \
+  return toString(s); }                                                \
+
 #define COMBOENUM4(x, a1,b1,a2,b2,a3,b3,a4,b4) enum class x : uint16_t {     \
     a1=b1, a2=b2, a3=b3, a4=b4 }; SMARTENUMSTART(x) SENUM4(x, a1, a2, a3,a4) \
   SMARTENUMEND(x)  

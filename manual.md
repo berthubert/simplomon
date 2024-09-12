@@ -228,6 +228,13 @@ addNtfyNotifier{topic="your_secret_topic"}
 ```
 You can also specify an authorization through `auth`, and a notification URL through `url`.
 
+## Slack
+Example:
+
+```lua
+addSlackNotifier{auth="your_token", channel="your_channel"}
+```
+
 ## Pushover
 Example:
 ```lua

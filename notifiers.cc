@@ -67,6 +67,39 @@ void NtfyNotifier::alert(const std::string& msg)
                              
 }
 
+
+SlackNotifier::SlackNotifier(sol::table data) : Notifier(data)
+{
+  checkLuaTable(data, {"auth", "channel"});
+  d_auth = data.get<string>("auth");
+  d_channel = data.get<string>("channel");
+  d_notifierName="Slack";
+}
+
+void SlackNotifier::alert(const std::string& msg)
+{
+  httplib::Client cli("https://slack.com");
+  httplib::Headers headers = {{"Authorization", fmt::format("Bearer {}", d_auth)}};
+
+  httplib::Params items = {
+    { "channel", d_channel},
+    { "text", msg}
+  };
+
+  auto res = cli.Post("/api/chat.postMessage", headers, items);
+
+  if(!res) {
+    auto err = res.error();
+    
+    throw std::runtime_error(fmt::format("Could not send post to Slack: {}", httplib::to_string(err)));
+  }
+  if(res->status != 200)
+    throw std::runtime_error(fmt::format("Post to Slack failed, res = {}", res->status));
+
+  //  fmt::print("{}\n", res->body);
+                             
+}
+
 static uint64_t getRandom64()
 {
   static std::random_device rd; // 32 bits at a time. At least on recent Linux and gcc this does not block

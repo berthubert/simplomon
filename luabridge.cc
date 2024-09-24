@@ -119,6 +119,9 @@ void initLua()
     g_checkers.emplace_back(make_unique<PrometheusChecker>(data));
   });
   
+  g_lua.set_function("external", [&](sol::table data) {
+    g_checkers.emplace_back(make_unique<ExternalChecker>(data));
+  });
 
   g_lua.set_function("smtp", [&](sol::table data) {
     g_checkers.emplace_back(make_unique<SMTPChecker>(data));

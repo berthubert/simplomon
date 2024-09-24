@@ -531,3 +531,39 @@ CheckResult PINGChecker::perform()
   }
   return ret;
 }
+
+
+// Based on: https://stackoverflow.com/questions/478898/how-do-i-execute-a-command-and-get-the-output-of-the-command-within-c-using-po
+std::string exec(const char* cmd) {
+    char buffer[128];
+    std::string result = "";
+    FILE* pipe = popen(cmd, "r");
+    if (!pipe) throw std::runtime_error("popen() failed!");
+    try {
+        while (fgets(buffer, sizeof buffer, pipe) != NULL) {
+            result += buffer;
+        }
+    } catch (...) {
+        pclose(pipe);
+        throw;
+    }
+    pclose(pipe);
+    return result;
+}
+
+ExternalChecker::ExternalChecker(sol::table data) : Checker(data)
+{
+  checkLuaTable(data, {"cmd", "regex"});
+  
+  d_cmd = data.get<string>("cmd");
+  d_exp = data.get<string>("regex");
+}
+
+CheckResult ExternalChecker::perform()
+{
+  string output = exec(d_cmd.c_str());
+  if (!std::regex_search(output, std::regex(d_exp))) {
+    return fmt::format("External check \"{}\" against \"{}\" failed, actual output: \"{}\"", d_cmd, d_exp, output);
+  }
+  return "";
+}

@@ -539,7 +539,7 @@ std::pair<int, std::string> exec(const char* cmd) {
     std::string result = "";
     int rc;
     FILE* pipe = popen(cmd, "r");
-    if (!pipe) throw std::runtime_error("popen() failed!");
+    if (!pipe) return std::pair<int, std::string> (255, "");
     try {
         while (fgets(buffer, sizeof buffer, pipe) != NULL) {
             result += buffer;

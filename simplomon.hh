@@ -223,12 +223,13 @@ public:
   std::string getCheckerName() override { return "external"; }
   std::string getDescription() override
   {
-    return fmt::format("External check {} using expression {}", d_cmd, d_exp);
+    return fmt::format("External check {}", d_cmd);
   }
 
 private:
   std::string d_cmd;
   std::string d_exp;
+  int d_rc;
 };
 
 

@@ -566,6 +566,10 @@ CheckResult ExternalChecker::perform()
 {
   std::pair<int, std::string> output = exec(d_cmd.c_str());
 
+  d_results.clear();
+  d_results[d_cmd]["rc"] = output.first;
+  d_results[d_cmd]["output"] = output.second;
+
   if (d_exp != "") {
     if (!std::regex_search(output.second, std::regex(d_exp))) {
       return fmt::format("External check \"{}\" against \"{}\" failed, actual output: \"{}\"", d_cmd, d_exp, output.second);

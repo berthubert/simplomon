@@ -212,6 +212,7 @@ td {
     border: 1px solid var(--clr-primary-fg);
     padding: var(--size-xs);
     vertical-align: top;
+    white-space: pre-wrap;
 }
 
 th {

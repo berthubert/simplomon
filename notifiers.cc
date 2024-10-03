@@ -83,7 +83,11 @@ void SlackNotifier::alert(const std::string& msg)
 
   httplib::Params items = {
     { "channel", d_channel},
-    { "text", msg}
+    { "text", msg},
+    { "unfurl_links", "false"},
+    { "unfurl_media", "false"},
+    { "mrkdwn", "false"},
+    { "parse", "none"}
   };
 
   auto res = cli.Post("/api/chat.postMessage", headers, items);

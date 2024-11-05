@@ -226,15 +226,19 @@ void Notifier::bulkDone()
   //  fmt::print("There are {} results that used to be old enough & are gone now\n",
   //         diff.size());
   for(const auto& str : diff) {
-    string desc = getAgeDesc(deltime[str]);
-    this->alert(fmt::format("🎉 after {}, the following alert is over: {}",
-                            desc,
-                            str));
+    this->resolve(str, deltime[str]);
   }
 
   d_prevOldEnough = d_oldEnough;
 }
 
+void Notifier::resolve(const std::string& message, const time_t ts)
+{
+  string desc = getAgeDesc(ts);
+  this->alert(fmt::format("🎉 after {}, the following alert is over: {}",
+                          message,
+                          desc));
+}
 
 TelegramNotifier::TelegramNotifier(sol::table data) : Notifier(data) 
 { 

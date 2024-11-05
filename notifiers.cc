@@ -272,3 +272,67 @@ void TelegramNotifier::alert(const std::string& message)
   // fmt::print("{}\n", res->body);
 }
 
+
+OpsgenieNotifier::OpsgenieNotifier(sol::table data) : Notifier(data)
+{
+  checkLuaTable(data, {"apikey"});
+  d_apikey = data.get<string>("apikey");
+}
+
+void OpsgenieNotifier::alert(const std::string& message)
+{
+  httplib::Client cli("https://api.opsgenie.com");
+  auto field = "GenieKey " + d_apikey;
+  httplib::Headers headers = {
+    {"Authorization", std::move(field)}
+  };
+  nlohmann::json jsonRequest = {
+    { "message", message },
+  };
+  std::string path;
+  path = "/v2/alerts";
+  auto response = cli.Post(path, headers, jsonRequest.dump(), "application/json");
+  if(!response) {
+    auto err = response.error();
+    throw std::runtime_error(fmt::format("\nCould not send post: {}", httplib::to_string(err)));
+  }
+  if(response->status != 202)
+    throw std::runtime_error(fmt::format("\nUnexpected response from Opsgenie, response = {}\n{}", response->status, response->body));
+  auto jsonResponse = nlohmann::json::parse(response->body);
+  const std::string requestId = jsonResponse["requestId"];
+
+  // now get the actual alert id
+  path = "/v2/alerts/requests/" + requestId;
+  response = cli.Get(path, headers);
+
+  // need to pull the request-id out of here!
+  if(!response) {
+    auto err = response.error();
+    throw std::runtime_error(fmt::format("\nCould not send post: {}", httplib::to_string(err)));
+  }
+  if(response->status != 200)
+    throw std::runtime_error(fmt::format("\nUnexpected response from Opsgenie, res = {}\n{}", response->status, response->body));
+  jsonResponse = nlohmann::json::parse(response->body);
+  const std::string alertId = jsonResponse["data"]["alertId"];
+  d_msg_to_alertid.insert({ message, alertId });
+}
+
+void OpsgenieNotifier::resolve(const std::string& message, const time_t ts)
+{
+  auto alertIdIter = d_msg_to_alertid.find(message);
+  if (alertIdIter == d_msg_to_alertid.end()) {
+    throw std::runtime_error(fmt::format("\nCould not find alertId for message {} !?", message));
+  }
+  const std::string alertId = alertIdIter->second;
+
+  httplib::Client cli("https://api.opsgenie.com");
+  auto field = "GenieKey " + d_apikey;
+  httplib::Headers headers = {
+    {"Authorization", std::move(field)}
+  };
+  std::string path;
+  path = "/v2/alerts/" + alertId + "/close";
+  const std::string empty_body("{}");
+  // need post an empty json-object to this url, empty string is not accepted
+  cli.Post(path, headers, "{}", "application/json");
+}

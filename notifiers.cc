@@ -13,7 +13,7 @@ PushoverNotifier::PushoverNotifier(sol::table data) : Notifier(data)
   d_notifierName="PushOver";
 }
 
-void PushoverNotifier::alert(const std::string& msg)
+void PushoverNotifier::alert(const std::string& msg, int seconds)
 {
   httplib::Client cli("https://api.pushover.net");
   // https://api.pushover.net/1/messages.json
@@ -45,7 +45,7 @@ NtfyNotifier::NtfyNotifier(sol::table data) : Notifier(data)
   d_notifierName="Ntfy";
 }
 
-void NtfyNotifier::alert(const std::string& msg)
+void NtfyNotifier::alert(const std::string& msg, int seconds)
 {
   httplib::Client cli(d_url);
   httplib::Headers headers = {};
@@ -144,7 +144,7 @@ EmailNotifier::EmailNotifier(sol::table data) : Notifier(data)
   d_notifierName="Email";
 }
 
-void EmailNotifier::alert(const std::string& textBody)
+void EmailNotifier::alert(const std::string& textBody, int seconds)
 {
   // sendAsciiEmailAsync(const std::string& server, const std::string& from, const std::string& to, const std::string& subject, const std::string& textBody)
   sendAsciiEmailAsync(d_server.toStringWithPort(),
@@ -161,10 +161,14 @@ void Notifier::bulkAlert(const std::string& textBody)
   d_reported.insert(textBody);
 }
 
-void SQLiteWriterNotifier::alert(const std::string& str)
+void SQLiteWriterNotifier::alert(const std::string& str, int seconds)
 {
-  if(g_sqlw)
-    g_sqlw->addValue({{"tstamp", (int64_t)time(nullptr)}, {"message", str}}, "notifications");
+  if(g_sqlw) {
+    if(seconds >= 0)
+      g_sqlw->addValue({{"tstamp", (int64_t)time(nullptr)}, {"message", str}, {"seconds", seconds}}, "notifications");
+    else
+      g_sqlw->addValue({{"tstamp", (int64_t)time(nullptr)}, {"message", str}}, "notifications");
+  }
 }
 
 void Notifier::bulkDone()
@@ -211,10 +215,10 @@ void Notifier::bulkDone()
     
   //  fmt::print("got {} NEW results that are old enough\n", diff.size());
   for(const auto& str : diff) {
-    string desc = getAgeDesc(d_times[str]);
+    string agedesc = getAgeDesc(d_times[str]);
     //    fmt::print("Reporting {}\n", str);
     if(d_minMinutes)
-      this->alert("("+desc+" already) " +str);
+      this->alert("("+agedesc+" already) " +str);
     else
       this->alert(str);
   }
@@ -229,7 +233,7 @@ void Notifier::bulkDone()
     string desc = getAgeDesc(deltime[str]);
     this->alert(fmt::format("🎉 after {}, the following alert is over: {}",
                             desc,
-                            str));
+                            str), time(nullptr) - deltime[str]);
   }
 
   d_prevOldEnough = d_oldEnough;
@@ -244,7 +248,7 @@ TelegramNotifier::TelegramNotifier(sol::table data) : Notifier(data)
   d_chatid = data.get<string>("chat_id");
 }
 
-void TelegramNotifier::alert(const std::string& message)
+void TelegramNotifier::alert(const std::string& message, int seconds)
 {
   httplib::Client cli("https://api.telegram.org");
 

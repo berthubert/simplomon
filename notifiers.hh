@@ -18,7 +18,7 @@ public:
   {
   }
   virtual ~Notifier() = default;
-  virtual void alert(const std::string& message) = 0;
+  virtual void alert(const std::string& message, int seconds = -1) = 0;
   std::string getNotifierName() { return d_notifierName; }
   void bulkAlert(const std::string& textBody);
   void bulkDone();
@@ -46,7 +46,7 @@ public:
     return d_times;
   }
   
-  void alert(const std::string& message) {}
+  void alert(const std::string& message, int seconds = -1) override {}
 };
 
 class SQLiteWriterNotifier : public Notifier
@@ -57,14 +57,14 @@ public:
     d_notifierName="SQLiteWriter";
   }
 
-  void alert(const std::string& message) override;
+  void alert(const std::string& message, int seconds = -1) override;
 };
 
 class PushoverNotifier : public Notifier
 {
 public:
   PushoverNotifier(sol::table data);
-  void alert(const std::string& message) override;
+  void alert(const std::string& message, int seconds = -1) override;
 private:
   std::string d_user, d_apikey;
 };
@@ -73,7 +73,7 @@ class NtfyNotifier : public Notifier
 {
 public:
   NtfyNotifier(sol::table data);
-  void alert(const std::string& message) override;
+  void alert(const std::string& message, int seconds = -1) override;
 private:
   std::string d_auth, d_url, d_topic;
 };
@@ -82,7 +82,7 @@ class EmailNotifier : public Notifier
 {
 public:
   EmailNotifier(sol::table data);
-  void alert(const std::string& message) override;
+  void alert(const std::string& message, int seconds = -1) override;
 private:
   std::string d_from, d_to;
   ComboAddress d_server;
@@ -92,7 +92,7 @@ class TelegramNotifier : public Notifier
 {
 public:
   TelegramNotifier(sol::table data);
-  void alert(const std::string& message) override;
+  void alert(const std::string& message, int seconds = -1) override;
 private:
   std::string d_botid, d_apikey, d_chatid;
 };

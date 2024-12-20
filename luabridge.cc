@@ -103,6 +103,9 @@ void initLua()
   g_lua.set_function("dns", [&](sol::table data) {
     g_checkers.emplace_back(make_unique<DNSChecker>(data));
   });
+  g_lua.set_function("domain", [&](sol::table data) {
+    g_checkers.emplace_back(make_unique<DomainChecker>(data));
+  });
 
   g_lua.set_function("httpredir", [&](sol::table data) {
     g_checkers.emplace_back(make_unique<HTTPRedirChecker>(data));

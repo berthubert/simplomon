@@ -21,6 +21,14 @@ vector<std::shared_ptr<Notifier>> g_notifiers;
 std::optional<bool> g_haveIPv6;
 std::unique_ptr<SQLiteWriter> g_sqlw;
 
+/* new plan
+
+   checkers can create alerts for multiple targets
+   and for each target, it can create different kinds of alerts, which might have different texts, while remaining the same alert
+   there might even be more kinds of alerts for the same target
+   we only want to celebrate (give all clear) if all the kinds are gone
+   we do report on there is a new kind of alert, or if one went away, or if the same kind changed
+*/
 
 /* the idea
    Every checker can generate multiple alerts.
@@ -127,13 +135,12 @@ try
   }
   fmt::print("IPv6 checks: {}\n", *g_haveIPv6 ? "enabled" : "disabled");
 
-
   set<shared_ptr<Notifier>> allntfs; 
   for(const auto &c : g_checkers)
     for(const auto& n : c->notifiers)
       allntfs.insert(n);
   if(allntfs.size() == 2) {
-    fmt::print("Warning: no checker has a notifier!\n");
+    fmt::print("Warning: no checker has a notifier, you'll never get an alert!\n");
   }
   else
     fmt::print("There are {} checkers with {} unique notifiers\n", g_checkers.size(), allntfs.size() - 2);

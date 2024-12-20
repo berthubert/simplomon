@@ -100,12 +100,12 @@ logic_js_h = custom_target(
 
 webpages = [logic_js_h, alpine_min_js_h, simplomon_ico_h, style_css_h, index_html_h]
 
-executable('simplomon', 'simplomon.cc', 'notifiers.cc', 'minicurl.cc', 'dnsmon.cc', 'record-types.cc', 'dnsmessages.cc', 'dns-storage.cc', 'netmon.cc', 'luabridge.cc', 'webservice.cc', 'support.cc', 'promon.cc', 'mailmon.cc', 'nonblocker.cc',
+executable('simplomon', 'simplomon.cc', 'notifiers.cc', 'minicurl.cc', 'dnsmon.cc', 'domainmon.cc', 'record-types.cc', 'dnsmessages.cc', 'dns-storage.cc', 'netmon.cc', 'luabridge.cc', 'webservice.cc', 'support.cc', 'promon.cc', 'mailmon.cc', 'nonblocker.cc',
 webpages,
 	dependencies: [json_dep, fmt_dep, cpphttplib,
 	simplesockets_dep, lua_dep, curl_dep, sqlite_dep, sqlitewriter_dep])
 
-executable('testrunner', 'testrunner.cc', 'notifiers.cc', 'minicurl.cc', 'dnsmon.cc', 'record-types.cc', 'dnsmessages.cc', 'dns-storage.cc', 'netmon.cc', 'luabridge.cc', 'webservice.cc', 'support.cc', 'promon.cc', 'mailmon.cc', 'nonblocker.cc', 
+executable('testrunner', 'testrunner.cc', 'notifiers.cc', 'minicurl.cc', 'dnsmon.cc', 'domainmon.cc', 'record-types.cc', 'dnsmessages.cc', 'dns-storage.cc', 'netmon.cc', 'luabridge.cc', 'webservice.cc', 'support.cc', 'promon.cc', 'mailmon.cc', 'nonblocker.cc', 
 	dependencies: [doctest_dep, curl_dep, json_dep, fmt_dep, cpphttplib, sqlite_dep,
 	simplesockets_dep, lua_dep, sqlitewriter_dep])
 

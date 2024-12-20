@@ -169,6 +169,25 @@ private:
 };
 
 
+class DomainChecker : public Checker
+{
+public:
+  DomainChecker(sol::table data);
+  CheckResult perform() override;
+  std::string getCheckerName() override { return "domain"; }
+  std::string getDescription() override
+  {
+    return fmt::format("Domain {}, minimal days {}", d_domain, d_mindays);
+  }
+private:
+  void getServersIfNeeded();
+  std::string d_domain;
+  int d_mindays;
+  std::map<std::string, std::string> d_domainmap;
+  std::string d_rdapurl;
+};
+
+
 class TCPPortClosedChecker : public Checker
 {
 public:

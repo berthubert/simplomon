@@ -7,10 +7,13 @@
 #include "minicurl.hh"
 #include "httplib.h"
 #include <netinet/in.h>
-#include <netinet/ip_icmp.h>
 #include <netinet/ip6.h>
-#include <netinet/icmp6.h>
 #include "support.hh"
+
+#ifndef __FreeBSD__
+#include <netinet/ip_icmp.h>
+#include <netinet/icmp6.h>
+#endif
 
 using namespace std;
 
@@ -337,11 +340,13 @@ CheckResult HTTPRedirChecker::perform()
 
 
 namespace {
+#ifndef __FreeBSD__
 struct icmppacket
 {
 	struct icmphdr hdr;
 	char msg[];
 };
+#endif
 }
 /*--------------------------------------------------------------------*/
 /*--- checksum - standard 1s complement checksum                   ---*/
@@ -361,6 +366,7 @@ static unsigned short internetchecksum(void *b, int len)
 	return result;
 }
 
+#ifndef __FreeBSD__
 static std::string makeICMPQuery(int family, uint16_t id, uint16_t seq, size_t psize)
 {
   if(family==AF_INET) {
@@ -417,6 +423,7 @@ static void fillMSGHdr(struct msghdr* msgh, struct iovec* iov, char* cbuf, int b
   msgh->msg_iovlen = 1;
   msgh->msg_flags = 0;
 }
+#endif
 
 
 /*
@@ -428,6 +435,7 @@ msg_control=[
 msg_controllen=56, msg_flags=0}, 0) = 64
 */
 
+#ifndef __FreeBSD__
 bool HarvestTTL(struct msghdr* msgh, int* ttl) 
 {
   struct cmsghdr *cmsg;
@@ -440,6 +448,7 @@ bool HarvestTTL(struct msghdr* msgh, int* ttl)
   }
   return false;
 }
+#endif
 
 
 PINGChecker::PINGChecker(sol::table data) : Checker(data, 2)
@@ -474,6 +483,12 @@ PINGChecker::PINGChecker(sol::table data) : Checker(data, 2)
   }
 }
 
+#ifdef __FreeBSD__
+CheckResult PINGChecker::perform()
+{
+	return CheckResult();
+}
+#else
 CheckResult PINGChecker::perform()
 {
   d_results.clear();
@@ -531,3 +546,4 @@ CheckResult PINGChecker::perform()
   }
   return ret;
 }
+#endif

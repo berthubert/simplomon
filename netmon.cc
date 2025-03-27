@@ -60,6 +60,57 @@ CheckResult TCPPortClosedChecker::perform()
   return cr;
 }
 
+TCPPortOpenChecker::TCPPortOpenChecker(sol::table data) : Checker(data)
+{
+  checkLuaTable(data, {"servers", "ports"});
+  for(const auto& s: data.get<vector<string>>("servers")) {
+    d_servers.insert(ComboAddress(s));
+  }
+  for(int s: data.get<vector<int>>("ports")) {
+    d_ports.insert(s);
+  }
+}
+
+
+CheckResult TCPPortOpenChecker::perform()
+{
+  CheckResult cr;
+  
+  for(const auto& s : d_servers) {
+    for(const auto& p : d_ports) {
+      int ret=-1;
+      ComboAddress rem=s;
+      rem.setPort(p);
+
+      try {
+        Socket sock(s.sin4.sin_family, SOCK_STREAM);
+        SetNonBlocking(sock);
+        //fmt::print("Going to connect to {}\n", rem.toStringWithPort());
+        ret = SConnectWithTimeout(sock, rem, 1);
+      }
+      catch(exception& e) {
+        //        fmt::print("Could not connnect to TCP {}: {}\n",
+        //           rem.toStringWithPort(), e.what());
+	cr.d_reasons[rem.toStringWithPort()].push_back(fmt::format("Unable to connect to TCP {}: {}",
+								   rem.toStringWithPort(), e.what()));
+
+        continue;
+      }
+      catch(...) {
+	cr.d_reasons[rem.toStringWithPort()].push_back(fmt::format("Unable to connect to TCP {}",
+								   rem.toStringWithPort()));
+
+        continue;
+      }
+      if(ret < 0) {
+        cr.d_reasons[rem.toStringWithPort()].push_back(fmt::format("Unable ot connect to TCP {}: ", rem.toStringWithPort(),
+								   strerror(errno)));
+      }
+    }
+  }
+  return cr;
+}
+
 
 // XXX needs switch to select IPv4 or IPv6 or happy eyeballs?
 HTTPSChecker::HTTPSChecker(sol::table data) : Checker(data)

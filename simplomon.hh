@@ -191,6 +191,29 @@ private:
   std::set<int> d_ports;
 };
 
+class TCPPortOpenChecker : public Checker
+{
+public:
+  TCPPortOpenChecker(const std::set<std::string>& servers,
+             const std::set<int>& ports);
+  TCPPortOpenChecker(sol::table data);
+  CheckResult perform() override;
+  std::string getCheckerName() override { return "tcpportopen"; }
+  std::string getDescription() override
+  {
+    std::vector<std::string> servers;
+    for(const auto& s : d_servers) servers.push_back(s.toString());
+    return fmt::format("TCP open check, servers {}, ports {}",
+                       servers, d_ports);
+  }
+
+  
+private:
+  std::set<ComboAddress> d_servers;
+  std::set<int> d_ports;
+};
+
+
 
 class PINGChecker : public Checker
 {

@@ -128,6 +128,8 @@ rrsig{server="100.25.31.6", name="berthub.eu"}
 scaryports={25, 80, 110, 443, 3000, 3306, 5000, 5432, 8000, 8080, 8888}
 tcpportclosed{servers={"100.25.31.6"}, ports=scaryports}
 
+tcpportopen{servers={"192.0.2.1"}, ports={80}}
+
 -- Check if DNS is serving what it should be
 dns{server="100.25.31.6", name="berthub.eu", type="A",
 	acceptable={"86.82.68.237", "217.100.190.174"}}
@@ -191,7 +193,6 @@ if they did not lead to notifications.
 
 ## Todo
 
- * Generic port *open* test
  * HTTP *POST* support
  * HTTP JSON check
  * Performance tests ("average response time past hour > 100ms")

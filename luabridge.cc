@@ -100,6 +100,10 @@ void initLua()
   g_lua.set_function("tcpportclosed", [&](sol::table data) {
     g_checkers.emplace_back(make_unique<TCPPortClosedChecker>(data));
   });
+  g_lua.set_function("tcpportopen", [&](sol::table data) {
+    g_checkers.emplace_back(make_unique<TCPPortOpenChecker>(data));
+  });
+
   g_lua.set_function("dns", [&](sol::table data) {
     g_checkers.emplace_back(make_unique<DNSChecker>(data));
   });

@@ -197,4 +197,12 @@ void initLua()
     return make_shared<TelegramNotifier>(data);
   });
 
+  // Opsgenie notifier
+  g_lua.set_function("addOpsgenieNotifier", [&](sol::table data) {
+    g_notifiers.emplace_back(make_shared<OpsgenieNotifier>(data));
+    return *g_notifiers.rbegin();
+  });
+  g_lua.set_function("createOpsgenieNotifier", [&](sol::table data) {
+    return make_shared<OpsgenieNotifier>(data);
+  });
 }

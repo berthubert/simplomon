@@ -19,6 +19,7 @@ public:
   }
   virtual ~Notifier() = default;
   virtual void alert(const std::string& message) = 0;
+  virtual void resolve(const std::string& message, const time_t ts);
   std::string getNotifierName() { return d_notifierName; }
   void bulkAlert(const std::string& textBody);
   void bulkDone();
@@ -95,4 +96,15 @@ public:
   void alert(const std::string& message) override;
 private:
   std::string d_botid, d_apikey, d_chatid;
+};
+
+class OpsgenieNotifier : public Notifier
+{
+public:
+  OpsgenieNotifier(sol::table data);
+  void alert(const std::string& message) override;
+  void resolve(const std::string& message, const time_t ts) override;
+private:
+  std::string d_apikey;
+  std::unordered_map<std::string, std::string> d_msg_to_alertid;
 };

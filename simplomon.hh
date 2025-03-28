@@ -238,6 +238,24 @@ private:
 };
 
 
+class ExternalChecker : public Checker
+{
+public:
+  ExternalChecker(sol::table data);
+  CheckResult perform() override;
+  std::string getCheckerName() override { return "external"; }
+  std::string getDescription() override
+  {
+    return fmt::format("External check {}", d_cmd);
+  }
+
+private:
+  std::string d_cmd;
+  std::string d_exp;
+  int d_rc;
+};
+
+
 class HTTPSChecker : public Checker
 {
 public:

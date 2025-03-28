@@ -92,6 +92,15 @@ dnssoa{domain="berthub.eu", servers= nameservers}
 dnssoa{domain="hubertnet.nl", servers= nameservers}
 ```
 
+## external
+
+Execute some external program, and check whether the output matches a regex and/or a return code:
+
+```lua
+external{cmd="do-thing", regex="success"}
+external{cmd="do-other-thing", rc=0}
+``` 
+
 ## httpredir
 
 Does the http redirect work? TBC. Example:

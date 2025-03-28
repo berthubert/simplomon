@@ -359,7 +359,7 @@ HTTPRedirChecker::HTTPRedirChecker(sol::table data) : Checker(data)
     d_fromhostpart = fromurl;
   else {
     d_fromhostpart = fromurl.substr(0, pos);
-    d_frompath = fromurl.substr(pos+1);
+    d_frompath = fromurl.substr(pos);
   }
   
   d_tourl = data.get<string>("toUrl");

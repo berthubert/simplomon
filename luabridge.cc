@@ -148,6 +148,14 @@ void initLua()
     return make_shared<NtfyNotifier>(data);
   });
 
+  g_lua.set_function("addSlackNotifier", [&](sol::table data) {
+    g_notifiers.emplace_back(make_shared<SlackNotifier>(data));
+    return *g_notifiers.rbegin();
+  });
+  g_lua.set_function("createSlackNotifier", [&](sol::table data) {
+    return make_shared<SlackNotifier>(data);
+  });
+
   g_lua.set_function("addEmailNotifier", [&](sol::table data) {
     g_notifiers.emplace_back(make_shared<EmailNotifier>(data));
     return *g_notifiers.rbegin();

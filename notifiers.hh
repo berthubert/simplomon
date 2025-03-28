@@ -78,6 +78,15 @@ private:
   std::string d_auth, d_url, d_topic;
 };
 
+class SlackNotifier : public Notifier
+{
+public:
+  SlackNotifier(sol::table data);
+  void alert(const std::string& message) override;
+private:
+  std::string d_auth, d_channel;
+};
+
 class EmailNotifier : public Notifier
 {
 public:

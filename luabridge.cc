@@ -2,6 +2,21 @@
 #include "simplomon.hh"
 #include "sol/sol.hpp"
 #include <fmt/chrono.h>
+
+#ifdef __FreeBSD__
+
+#include <limits.h>
+
+#ifndef HOST_NAME_MAX
+#ifdef _POSIX_HOST_NAME_MAX
+#define	HOST_NAME_MAX _POSIX_HOST_NAME_MAX
+#else
+#define	HOST_NAME_MAX 255
+#endif
+#endif
+
+#endif
+
 using namespace std;
 
 sol::state g_lua;

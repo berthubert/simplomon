@@ -1,3 +1,43 @@
+# THIS REPOSITORY HAS MOVED!
+
+Please head to our new home on Codeberg: [https://codeberg.org/berthubert/simplomon](https://codeberg.org/berthubert/simplomon)
+
+Thanks!
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # simplomon
 Very simple availability monitoring system with a single configuration file and a single binary. Also comes as a Docker image.
 

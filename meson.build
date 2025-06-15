@@ -64,7 +64,7 @@ if not lua_dep.found()
     error('Lua 5.3 could not be found')
 endif
 
-cpphttplib = dependency('cpp-httplib')
+cpphttplib = dependency('cpp-httplib', default_options: ['cpp-httplib_zlib=disabled', 'cpp-httplib_brotli=disabled'])
 sqlitewriter_dep = dependency('sqlitewriter', static: true)
 doctest_dep=dependency('doctest')
 simplesockets_dep = dependency('simplesockets', static: true)

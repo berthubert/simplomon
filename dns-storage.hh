@@ -166,8 +166,9 @@ struct DNSName
   std::deque<DNSLabel> d_name;
 };
 
-// printing, concatenation
+// printing, fmt formatting, concatenation
 std::ostream & operator<<(std::ostream &os, const DNSName& d);
+std::string format_as(const DNSName& name);
 DNSName operator+(const DNSName& a, const DNSName& b);
 DNSName makeDNSName(const std::string& str);
 

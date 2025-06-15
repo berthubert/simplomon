@@ -43,9 +43,7 @@ static DNSMessageReader sendQuery(const vector<ComboAddress>& resolvers, DNSName
 	}
 	
 	if(dmr.dh.tc) {
-          throw std::runtime_error(fmt::format("Needed to do TCP DNS for {}|{} which we can't",
-                                               dn.toString(), toString(dt))
-                                   );
+          throw std::runtime_error(fmt::format("Needed to do TCP DNS for {}|{} which we can't", dn, dt));
 	  // shit
 	}
 	else
@@ -54,9 +52,7 @@ static DNSMessageReader sendQuery(const vector<ComboAddress>& resolvers, DNSName
       catch(...){} 
     }
   }
-  throw std::runtime_error(fmt::format("No DNS server could be reached or responded trying to resolve '{}|{}'",
-                                       dn.toString(), toString(dt))
-                                       );
+  throw std::runtime_error(fmt::format("No DNS server could be reached or responded trying to resolve '{}|{}'", dn, dt));
 }
 
 

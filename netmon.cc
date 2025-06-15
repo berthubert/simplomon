@@ -582,3 +582,54 @@ CheckResult PINGChecker::perform()
   }
   return ret;
 }
+
+
+// Based on: https://stackoverflow.com/questions/478898/how-do-i-execute-a-command-and-get-the-output-of-the-command-within-c-using-po
+std::pair<int, std::string> exec(const char* cmd) {
+    char buffer[128];
+    std::string result = "";
+    int rc;
+    FILE* pipe = popen(cmd, "r");
+    if (!pipe) return std::pair<int, std::string> (255, "");
+    try {
+        while (fgets(buffer, sizeof buffer, pipe) != NULL) {
+            result += buffer;
+        }
+    } catch (...) {
+        pclose(pipe);
+        throw;
+    }
+    rc = pclose(pipe) / 256;
+    std::pair<int, std::string> ret(rc, result);
+    return ret;
+}
+
+ExternalChecker::ExternalChecker(sol::table data) : Checker(data)
+{
+  checkLuaTable(data, {"cmd"}, {"regex", "rc"});
+  
+  d_cmd = data.get<string>("cmd");
+  d_exp = data.get_or<string>("regex", "");
+  d_rc = data.get_or("rc", -1);
+}
+
+CheckResult ExternalChecker::perform()
+{
+  std::pair<int, std::string> output = exec(d_cmd.c_str());
+
+  d_results.clear();
+  d_results[d_cmd]["rc"] = output.first;
+  d_results[d_cmd]["output"] = output.second;
+
+  if (d_exp != "") {
+    if (!std::regex_search(output.second, std::regex(d_exp))) {
+      return fmt::format("External check \"{}\" against \"{}\" failed, actual output: \"{}\"", d_cmd, d_exp, output.second);
+    }
+  }
+  if (d_rc != -1) {
+    if (output.first != d_rc) {
+      return fmt::format("External check \"{}\" expected rc \"{}\", received: \"{}\"", d_cmd, d_rc, output.first);
+    }
+  }
+  return "";
+}
